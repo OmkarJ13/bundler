@@ -3,5 +3,6 @@
  * @type {import('lint-staged').Configuration}
  */
 export default {
-  '**/*': 'prettier --write --ignore-unknown',
+  '**/*': 'npm run format',
+  '**/*.{js,mjs,cjs,ts}': 'npm run lint',
 };

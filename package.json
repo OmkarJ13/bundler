@@ -8,6 +8,7 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "format": "prettier --write --ignore-unknown",
+    "lint": "eslint --fix",
     "prepare": "husky"
   },
   "type": "module",
