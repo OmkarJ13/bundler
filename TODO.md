@@ -4,7 +4,7 @@
 
 ## 🎯 Chapter 1: Foundation
 - [x] Setup package.json
-- [ ] Setup Typescript
+- [x] Setup Typescript
 - [ ] Install and configure Prettier
 - [ ] Install and configure ESLint
 - [ ] Setup lint-staged and husky for pre-commit hooks

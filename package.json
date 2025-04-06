@@ -2,9 +2,11 @@
   "name": "redemption",
   "version": "1.0.0",
   "description": "A minimal JavaScript bundler",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "watch": "tsc --watch"
   },
   "repository": {
     "type": "git",
@@ -21,5 +23,8 @@
   "bugs": {
     "url": "https://github.com/OmkarJ13/Redemption/issues"
   },
-  "homepage": "https://github.com/OmkarJ13/Redemption#readme"
+  "homepage": "https://github.com/OmkarJ13/Redemption#readme",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
 }
