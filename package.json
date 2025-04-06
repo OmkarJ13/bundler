@@ -6,8 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "prepare": "husky"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OmkarJ13/Redemption.git"
@@ -25,6 +27,9 @@
   },
   "homepage": "https://github.com/OmkarJ13/Redemption#readme",
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0",
+    "prettier": "3.5.3",
     "typescript": "^5.8.3"
   }
 }
