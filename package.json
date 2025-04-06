@@ -1,0 +1,25 @@
+{
+  "name": "redemption",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OmkarJ13/Redemption.git"
+  },
+  "keywords": [
+    "bundler",
+    "javascript",
+    "typescript",
+    "modules"
+  ],
+  "author": "OmkarJ13",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OmkarJ13/Redemption/issues"
+  },
+  "homepage": "https://github.com/OmkarJ13/Redemption#readme"
+}
