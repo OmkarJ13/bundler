@@ -7,8 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "watch": "tsc --watch",
-    "format": "prettier --write --ignore-unknown",
-    "lint": "eslint --fix",
+    "prettier": "prettier --write --ignore-unknown",
+    "prettier:check": "prettier --check --ignore-unknown",
+    "eslint": "eslint --fix",
+    "eslint:check": "eslint",
     "prepare": "husky"
   },
   "type": "module",

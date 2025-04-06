@@ -3,6 +3,6 @@
  * @type {import('lint-staged').Configuration}
  */
 export default {
-  '**/*': 'npm run format',
-  '**/*.{js,mjs,cjs,ts}': 'npm run lint',
+  '**/*': 'npm run prettier',
+  '**/*.{js,mjs,cjs,ts}': 'npm run eslint',
 };
