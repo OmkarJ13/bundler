@@ -3,14 +3,16 @@
 ---
 
 ## 🎯 Chapter 1: Foundation
+
 - [x] Setup package.json
 - [x] Setup Typescript
-- [ ] Install and configure Prettier
+- [x] Install and configure Prettier
 - [ ] Install and configure ESLint
-- [ ] Setup lint-staged and husky for pre-commit hooks
+- [x] Setup lint-staged and husky for pre-commit hooks
 - [ ] Figure out basic directory structure
 
 ## 🎯 Chapter 2: Basics
+
 - [ ] Create basic CLI
   - [ ] Accept entry file path from CLI arguments
   - [ ] Print received entry file path
@@ -24,12 +26,14 @@
   - [ ] Output bundle
 
 ## 🎯 Chapter 3: Beyond The Basics
+
 - [ ] Scope Hoisting (flatten modules without IIFEs)
   - [ ] Read through how rollup does this
   - [ ] Understand the benefits vs. naive approach
 - [ ] Handle Variable Name Collisions
 
 ## 🎯 Chapter 4: Advanced Bundler
+
 - [ ] TypeScript Support
   - [ ] Handle `.ts` file extensions
   - [ ] Transpile `.ts` to `.js` (basic — strip types)
@@ -45,13 +49,15 @@
 - [ ] Minification using an external library
 
 ## 🎯 Chapter 5: Developer Experience
+
 - [ ] Support for redemption.config.ts file to specify options
 - [ ] Prettify CLI output and error reporting
 - [ ] Unit tests
 
 ## 🎯 Chapter 6: Beyond Advanced - Red Dead Redemption
+
 - [ ] Minification logic from scratch
-  - [ ] Too optimistic? 
+  - [ ] Too optimistic?
 - [ ] Circular dependency detection
 - [ ] Aggressive tree-shaking, for more than just imports and exports
 - [ ] Sourcemaps
