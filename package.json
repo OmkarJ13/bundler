@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
+    "typescript:check": "tsc --noEmit",
     "watch": "tsc --watch",
     "prettier": "prettier --write --ignore-unknown",
     "prettier:check": "prettier --check --ignore-unknown",
