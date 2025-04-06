@@ -9,7 +9,7 @@
 - [x] Install and configure Prettier
 - [x] Install and configure ESLint
 - [x] Setup lint-staged and husky for pre-commit hooks
-- [ ] Figure out basic directory structure
+- [x] Figure out basic directory structure
 
 ## 🎯 Chapter 2: Basics
 
