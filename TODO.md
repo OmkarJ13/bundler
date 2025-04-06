@@ -3,7 +3,7 @@
 ---
 
 ## 🎯 Chapter 1: Foundation
-- [ ] Setup package.json
+- [x] Setup package.json
 - [ ] Setup Typescript
 - [ ] Install and configure Prettier
 - [ ] Install and configure ESLint
