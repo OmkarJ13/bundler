@@ -7,7 +7,7 @@
 - [x] Setup package.json
 - [x] Setup Typescript
 - [x] Install and configure Prettier
-- [ ] Install and configure ESLint
+- [x] Install and configure ESLint
 - [x] Setup lint-staged and husky for pre-commit hooks
 - [ ] Figure out basic directory structure
 
