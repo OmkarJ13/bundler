@@ -19,6 +19,9 @@
     "type": "git",
     "url": "git+https://github.com/OmkarJ13/Redemption.git"
   },
+  "bin": {
+    "redemption": "./dist/cli.js"
+  },
   "keywords": [
     "bundler",
     "javascript",
@@ -33,6 +36,8 @@
   "homepage": "https://github.com/OmkarJ13/Redemption#readme",
   "devDependencies": {
     "@eslint/js": "^9.24.0",
+    "@types/node": "^22.14.0",
+    "@types/yargs": "^17.0.33",
     "eslint": "^9.24.0",
     "globals": "^16.0.0",
     "husky": "^9.1.7",
@@ -40,5 +45,8 @@
     "prettier": "3.5.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.29.0"
+  },
+  "dependencies": {
+    "yargs": "^17.7.2"
   }
 }

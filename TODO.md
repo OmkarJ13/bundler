@@ -13,9 +13,9 @@
 
 ## 🎯 Chapter 2: Basics
 
-- [ ] Create basic CLI
-  - [ ] Accept entry file path from CLI arguments
-  - [ ] Print received entry file path
+- [x] Create basic CLI
+  - [x] Accept entry file path from CLI arguments
+  - [x] Print received entry file path
 - [ ] Figure out bundler parsing logic
   - [ ] Read entry file content
   - [ ] Parse imports (basic parsing)
