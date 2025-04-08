@@ -16,10 +16,10 @@
 - [x] Create basic CLI
   - [x] Accept entry file path from CLI arguments
   - [x] Print received entry file path
-- [ ] Figure out bundler parsing logic
-  - [ ] Read entry file content
-  - [ ] Parse imports (basic parsing)
-  - [ ] Collect dependencies
+- [x] Figure out bundler parsing logic
+  - [x] Read entry file content
+  - [x] Parse imports (basic parsing)
+  - [x] Collect dependencies
 - [ ] Figure out how to model dependency graph
 - [ ] Bundle Files
   - [ ] Naive bundling (concatenate module code using IIFEs)

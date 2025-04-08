@@ -2,6 +2,7 @@
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { bundle } from './bundle.js';
 
 yargs(hideBin(process.argv))
   .command(
@@ -14,7 +15,7 @@ yargs(hideBin(process.argv))
       });
     },
     (argv) => {
-      console.info(`Bundling code with entry file: ${argv.entry}`);
+      console.log(bundle(argv.entry));
     }
   )
   .parse();
