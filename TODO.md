@@ -20,7 +20,7 @@
   - [x] Read entry file content
   - [x] Parse imports (basic parsing)
   - [x] Collect dependencies
-- [ ] Figure out how to model dependency graph
+- [x] Figure out how to model dependency graph
 - [ ] Bundle Files
   - [ ] Naive bundling (concatenate module code using IIFEs)
   - [ ] Output bundle
