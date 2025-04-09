@@ -1,3 +1,4 @@
 import { name } from './name.js';
+import { hello } from './hello.js';
 
-console.log(`Hello, ${name}!`);
+hello(name);

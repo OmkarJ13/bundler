@@ -15,7 +15,7 @@ yargs(hideBin(process.argv))
       });
     },
     (argv) => {
-      console.log(bundle(argv.entry));
+      console.dir(bundle(argv.entry), { depth: null });
     }
   )
   .parse();
