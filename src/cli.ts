@@ -2,7 +2,7 @@
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { bundle } from './bundle.js';
+import { bundle, getDependencyGraph } from './bundle.js';
 
 yargs(hideBin(process.argv))
   .command(
@@ -15,7 +15,10 @@ yargs(hideBin(process.argv))
       });
     },
     (argv) => {
-      console.dir(bundle(argv.entry), { depth: null });
+      const dependencyGraph = getDependencyGraph(argv.entry);
+      console.dir(getDependencyGraph(argv.entry), { depth: null });
+      const bundledCode = bundle(dependencyGraph);
+      console.log(bundledCode);
     }
   )
   .parse();

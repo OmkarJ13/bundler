@@ -1,1 +1,3 @@
-export const firstName = 'Omkar';
+module.exports = {
+  firstName: 'Omkar',
+};
