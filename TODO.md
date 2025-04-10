@@ -21,8 +21,8 @@
   - [x] Parse imports (basic parsing)
   - [x] Collect dependencies
 - [x] Figure out how to model dependency graph
-- [ ] Bundle Files
-  - [ ] Naive bundling (concatenate module code using IIFEs)
+- [x] Bundle Files
+  - [x] Naive bundling (concatenate module code using IIFEs)
   - [ ] Output bundle
 
 ## 🎯 Chapter 3: Beyond The Basics
