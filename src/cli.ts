@@ -16,9 +16,7 @@ yargs(hideBin(process.argv))
     },
     (argv) => {
       const dependencyGraph = getDependencyGraph(argv.entry);
-      console.dir(getDependencyGraph(argv.entry), { depth: null });
-      const bundledCode = bundle(dependencyGraph);
-      console.log(bundledCode);
+      bundle(dependencyGraph, 'test/bundle.js');
     }
   )
   .parse();

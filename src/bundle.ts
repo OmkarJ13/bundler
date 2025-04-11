@@ -57,10 +57,10 @@ function bootstrapModules(dependencyGraph: Dependency) {
   require(dependencyGraph);
 }
 
-export function bundle(dependencyGraph: Dependency): string {
+export function bundle(dependencyGraph: Dependency, outputPath: string): void {
   const bundle = `
     (${bootstrapModules.toString()})(${getObjectAsString(dependencyGraph)})
   `;
 
-  return bundle;
+  fs.writeFileSync(outputPath, bundle);
 }
