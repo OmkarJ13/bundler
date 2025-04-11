@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { getId } from './utils.js';
+import { getId, getObjectAsString } from './utils.js';
 
 type Dependency = {
   id: number;
@@ -43,43 +43,25 @@ export function getDependencyGraph(entry: string): Dependency {
   return dependencyGraph;
 }
 
-export function bundle(dependencyGraph: Dependency): string {
-  const bootstrapModules = function (dependencyGraph: Dependency) {
-    function require(dependencyGraph: Dependency) {
-      const module: { exports: Record<string, never> } = { exports: {} };
+function bootstrapModules(dependencyGraph: Dependency) {
+  function require(dependencyGraph: Dependency) {
+    const module: { exports: Record<string, never> } = { exports: {} };
 
-      function localRequire(path: string) {
-        const childDependencyGraph = dependencyGraph.dependencies[path];
-        return require(childDependencyGraph);
-      }
-
-      dependencyGraph.code(localRequire, module);
-      return module.exports;
+    function localRequire(path: string) {
+      const childDependencyGraph = dependencyGraph.dependencies[path];
+      return require(childDependencyGraph);
     }
 
-    require(dependencyGraph);
-  };
-
-  function getStringifiedObject(obj: object): string {
-    return `{${Object.entries(obj)
-      .map(([key, value]) => {
-        if (
-          typeof value === 'object' &&
-          !Array.isArray(value) &&
-          value !== null
-        ) {
-          return `"${key}":${getStringifiedObject(value)}`;
-        } else if (typeof value === 'string') {
-          return `"${key}":"${value}"`;
-        }
-
-        return `"${key}":${value}`;
-      })
-      .join(',')}}`;
+    dependencyGraph.code(localRequire, module);
+    return module.exports;
   }
 
+  require(dependencyGraph);
+}
+
+export function bundle(dependencyGraph: Dependency): string {
   const bundle = `
-    (${bootstrapModules.toString()})(${getStringifiedObject(dependencyGraph)})
+    (${bootstrapModules.toString()})(${getObjectAsString(dependencyGraph)})
   `;
 
   return bundle;
