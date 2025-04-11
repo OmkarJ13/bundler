@@ -1,9 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { getId, getObjectAsString } from './utils.js';
+import { getObjectAsString } from './utils.js';
 
 type Dependency = {
-  id: number;
   path: string;
   code: (
     require: (path: string) => unknown,
@@ -17,7 +16,6 @@ export function getDependencyGraph(entry: string): Dependency {
   const contents = fs.readFileSync(entry, 'utf-8');
 
   const dependencyGraph: Dependency = {
-    id: getId(),
     path: entry,
     code: eval(`(function (require, module) {
       ${contents}

@@ -1,9 +1,3 @@
-let ID = 0;
-
-export function getId() {
-  return ID++;
-}
-
 export function getObjectAsString(obj: object): string {
   return `{${Object.entries(obj)
     .map(([key, value]) => {
