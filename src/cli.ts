@@ -2,7 +2,7 @@
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { bundle, getDependencyGraph } from './bundle.js';
+import { bundle } from './bundle.js';
 
 yargs()
   .scriptName('redemption')
@@ -22,8 +22,7 @@ yargs()
         });
     },
     (argv) => {
-      const dependencyGraph = getDependencyGraph(argv.entry);
-      bundle(dependencyGraph, argv.output);
+      bundle(argv.entry, argv.output);
     }
   )
   .help()

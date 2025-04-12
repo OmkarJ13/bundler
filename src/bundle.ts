@@ -1,34 +1,28 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { getObjectAsString } from './utils.js';
 
 type Dependency = {
   path: string;
-  code: (
-    require: (path: string) => unknown,
-    module: { exports: Record<string, never> }
-  ) => void;
+  code: string;
   dependencies: Record<string, Dependency>;
 };
 
-export function getDependencyGraph(entry: string): Dependency {
+function getDependencyGraph(entry: string): Dependency {
   const entryDir = path.dirname(entry);
   const contents = fs.readFileSync(entry, 'utf-8');
 
   const dependencyGraph: Dependency = {
     path: entry,
-    code: eval(`(function (require, module) {
-      ${contents}
-    })`) as (
-      require: (path: string) => unknown,
-      module: { exports: Record<string, never> }
-    ) => void,
+    code: contents
+      .replaceAll(/import.*from.*/g, '')
+      .replaceAll(/export/g, '')
+      .trim(),
     dependencies: {},
   };
 
   // Hax to match import paths, to be replaced by AST parser in future
   const matches = Array.from(
-    contents.matchAll(/require\((?:'|")(.*)(?:'|")\)/g)
+    contents.matchAll(/import.*from.*(?:'|")(.*)(?:'|")/g)
   );
 
   const imports = matches.map((match) => match[1]);
@@ -41,26 +35,27 @@ export function getDependencyGraph(entry: string): Dependency {
   return dependencyGraph;
 }
 
-function bootstrapModules(dependencyGraph: Dependency) {
-  function require(dependencyGraph: Dependency) {
-    const module: { exports: Record<string, never> } = { exports: {} };
+function getBundle(dependencyGraph: Dependency): string {
+  const code = [];
 
-    function localRequire(path: string) {
-      const childDependencyGraph = dependencyGraph.dependencies[path];
-      return require(childDependencyGraph);
+  const dependencies = Object.entries(dependencyGraph.dependencies);
+
+  if (dependencies.length > 0) {
+    for (const [, dependencyGraph] of dependencies) {
+      if (Object.entries(dependencyGraph.dependencies).length > 0) {
+        code.push(getBundle(dependencyGraph));
+      } else {
+        code.push(dependencyGraph.code);
+      }
     }
-
-    dependencyGraph.code(localRequire, module);
-    return module.exports;
   }
 
-  require(dependencyGraph);
+  code.push(dependencyGraph.code);
+  return code.join('\n');
 }
 
-export function bundle(dependencyGraph: Dependency, outputPath: string): void {
-  const bundle = `
-    (${bootstrapModules.toString()})(${getObjectAsString(dependencyGraph)})
-  `;
-
-  fs.writeFileSync(outputPath, bundle);
+export function bundle(entryFile: string, outputFile: string): void {
+  const dependencyGraph = getDependencyGraph(entryFile);
+  const bundledCode = getBundle(dependencyGraph);
+  fs.writeFileSync(outputFile, bundledCode);
 }

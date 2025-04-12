@@ -1,3 +1,1 @@
-module.exports = {
-  lastName: 'Joshi',
-};
+export const lastName = 'Joshi';

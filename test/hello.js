@@ -1,5 +1,3 @@
-module.exports = {
-  hello: function (name) {
-    console.log('Hello, ' + name + '!');
-  },
-};
+export function hello(name) {
+  console.log('Hello, ' + name + '!');
+}

@@ -1,7 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-const { firstName } = require('./firstname.js');
-const { lastName } = require('./lastname.js');
+import { firstName } from './firstname.js';
+import { lastName } from './lastname.js';
 
-module.exports = {
-  name: firstName + ' ' + lastName,
-};
+export const name = firstName + ' ' + lastName;
