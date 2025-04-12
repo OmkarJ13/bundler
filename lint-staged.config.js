@@ -5,5 +5,5 @@
 export default {
   '**/*': 'npm run prettier',
   '**/*.{js,mjs,cjs,ts}': 'npm run eslint',
-  '**/*.ts': 'npm run typescript:check',
+  '**/*.ts': () => 'npm run typescript:check',
 };

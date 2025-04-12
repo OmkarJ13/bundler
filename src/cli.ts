@@ -4,19 +4,27 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { bundle, getDependencyGraph } from './bundle.js';
 
-yargs(hideBin(process.argv))
+yargs()
+  .scriptName('redemption')
+  .usage('$0 [command] [options]')
   .command(
-    'bundle [entry]',
-    'bundles js files',
+    'bundle [options]',
+    'bundle javascript files',
     (yargs) => {
-      return yargs.positional('entry', {
-        default: 'index.js',
-        description: 'entry file',
-      });
+      return yargs
+        .option('entry', {
+          default: 'src/index.js',
+          description: 'entry file',
+        })
+        .option('output', {
+          default: 'dist/bundle.js',
+          description: 'output bundle file',
+        });
     },
     (argv) => {
       const dependencyGraph = getDependencyGraph(argv.entry);
-      bundle(dependencyGraph, 'test/bundle.js');
+      bundle(dependencyGraph, argv.output);
     }
   )
-  .parse();
+  .help()
+  .parse(hideBin(process.argv));
