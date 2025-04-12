@@ -23,7 +23,7 @@
 - [x] Figure out how to model dependency graph
 - [x] Bundle Files
   - [x] Naive bundling (concatenate module code using IIFEs)
-  - [ ] Output bundle
+  - [x] Output bundle
 
 ## 🎯 Chapter 3: Beyond The Basics
 
