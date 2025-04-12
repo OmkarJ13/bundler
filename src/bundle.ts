@@ -4,7 +4,7 @@ import * as path from 'path';
 type Dependency = {
   path: string;
   code: string;
-  dependencies: Record<string, Dependency>;
+  dependencies: Dependency[];
 };
 
 function getDependencyGraph(entry: string): Dependency {
@@ -17,7 +17,7 @@ function getDependencyGraph(entry: string): Dependency {
       .replaceAll(/import.*from.*/g, '')
       .replaceAll(/export/g, '')
       .trim(),
-    dependencies: {},
+    dependencies: [],
   };
 
   // Hax to match import paths, to be replaced by AST parser in future
@@ -29,7 +29,7 @@ function getDependencyGraph(entry: string): Dependency {
   imports.forEach((importPath) => {
     const absolutePath = path.join(entryDir, importPath);
     const childDependencyGraph: Dependency = getDependencyGraph(absolutePath);
-    dependencyGraph.dependencies[importPath] = childDependencyGraph;
+    dependencyGraph.dependencies.push(childDependencyGraph);
   });
 
   return dependencyGraph;
@@ -38,15 +38,9 @@ function getDependencyGraph(entry: string): Dependency {
 function getBundle(dependencyGraph: Dependency): string {
   const code = [];
 
-  const dependencies = Object.entries(dependencyGraph.dependencies);
-
-  if (dependencies.length > 0) {
-    for (const [, dependencyGraph] of dependencies) {
-      if (Object.entries(dependencyGraph.dependencies).length > 0) {
-        code.push(getBundle(dependencyGraph));
-      } else {
-        code.push(dependencyGraph.code);
-      }
+  if (dependencyGraph.dependencies.length > 0) {
+    for (const childDependency of dependencyGraph.dependencies) {
+      code.push(getBundle(childDependency));
     }
   }
 
