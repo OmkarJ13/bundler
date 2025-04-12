@@ -1,5 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { parse } from '@babel/parser';
+import _traverse from '@babel/traverse';
+// https://github.com/babel/babel/issues/13855#issuecomment-945123514
+const traverse = _traverse.default;
 
 type Dependency = {
   path: string;
@@ -10,6 +14,7 @@ type Dependency = {
 function getDependencyGraph(entry: string): Dependency {
   const entryDir = path.dirname(entry);
   const contents = fs.readFileSync(entry, 'utf-8');
+  const ast = parse(contents, { sourceType: 'module' });
 
   const dependencyGraph: Dependency = {
     path: entry,
@@ -20,16 +25,13 @@ function getDependencyGraph(entry: string): Dependency {
     dependencies: [],
   };
 
-  // Hax to match import paths, to be replaced by AST parser in future
-  const matches = Array.from(
-    contents.matchAll(/import.*from.*(?:'|")(.*)(?:'|")/g)
-  );
-
-  const imports = matches.map((match) => match[1]);
-  imports.forEach((importPath) => {
-    const absolutePath = path.join(entryDir, importPath);
-    const childDependencyGraph: Dependency = getDependencyGraph(absolutePath);
-    dependencyGraph.dependencies.push(childDependencyGraph);
+  traverse(ast, {
+    ImportDeclaration: ({ node }) => {
+      const importPath = node.source.value;
+      const absolutePath = path.join(entryDir, importPath);
+      const childDependencyGraph: Dependency = getDependencyGraph(absolutePath);
+      dependencyGraph.dependencies.push(childDependencyGraph);
+    },
   });
 
   return dependencyGraph;
