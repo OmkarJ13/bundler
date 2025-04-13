@@ -22,15 +22,25 @@
   - [x] Collect dependencies
 - [x] Figure out how to model dependency graph
 - [x] Bundle Files
-  - [x] Naive bundling (concatenate module code using IIFEs)
+  - [x] Naive bundling (How things were done earlier using runtime require function)
   - [x] Output bundle
 
 ## 🎯 Chapter 3: Beyond The Basics
 
 - [ ] Scope Hoisting (flatten modules without IIFEs)
-  - [ ] Read through how rollup does this
-  - [ ] Understand the benefits vs. naive approach
+  - [x] Read through how rollup does this
+  - [x] Understand the benefits vs. runtime require approach
+  - [x] Implement a basic version, which concatenates files in order and removes basic imports and replaces export declarations with declarations
+  - [] Advanced exports
+    - [] Handle default exports
+    - [] Handle re-exports and module aggregations
+    - [] Handle aliased exports
+  - [] Advanced imports
+    - [] Handle default imports
+    - [] Handle aliased imports
 - [ ] Handle Variable Name Collisions
+  - [] Do a basic POC of this, basically rollup adds $n for duplicate declarations
+  - [] Handle edge case where if a variable name already contains the suffix that we added, it shouldn't collide again, re-run duplicate fixing logic until there are no more duplicates
 
 ## 🎯 Chapter 4: Advanced Bundler
 
