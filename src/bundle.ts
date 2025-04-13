@@ -1,41 +1,56 @@
 import * as fs from 'fs';
-import * as path from 'path';
-import { parse } from '@babel/parser';
+import { join, dirname } from 'path';
+import { parse, ParseResult } from '@babel/parser';
 import _traverse from '@babel/traverse';
 // https://github.com/babel/babel/issues/13855#issuecomment-945123514
 const traverse = _traverse.default;
 import { generate } from '@babel/generator';
+import { File } from '@babel/types';
 
-type Dependency = {
+type Module = {
   path: string;
-  code: string;
-  dependencies: Dependency[];
+  ast: ParseResult<File>;
+  dependencies: Module[];
 };
 
-function getDependencyGraph(entry: string): Dependency {
-  const entryDir = path.dirname(entry);
+function getDependencyGraph(entry: string): Module {
+  const entryDir = dirname(entry);
   const contents = fs.readFileSync(entry, 'utf-8');
   const ast = parse(contents, { sourceType: 'module' });
-
-  const dependencyGraph: Dependency = {
-    path: entry,
-    code: contents,
-    dependencies: [],
-  };
+  const dependencies: Module[] = [];
 
   traverse(ast, {
-    ImportDeclaration: ({ node }) => {
-      const importPath = node.source.value;
-      const absolutePath = path.join(entryDir, importPath);
-      const childDependencyGraph: Dependency = getDependencyGraph(absolutePath);
-      dependencyGraph.dependencies.push(childDependencyGraph);
+    ImportDeclaration: (path) => {
+      const importPath = path.node.source.value;
+      const absolutePath = join(entryDir, importPath);
+      const childDependencyGraph: Module = getDependencyGraph(absolutePath);
+      dependencies.push(childDependencyGraph);
+      path.remove();
+    },
+    ExportNamedDeclaration: (path) => {
+      const declaration = path.node.declaration;
+      if (declaration) {
+        // Export contains a declaration, so we need to remove the export part while keeping the declaration
+        // export const foo = 'bar' will be replaced with const foo = 'bar';
+        path.replaceWith(declaration);
+      } else {
+        // Export doesn't contain declaration, so we can remove it completely.
+        // export { foo }; will be removed, as foo is already declared somewhere else, so no need to re-declaring it
+        path.remove();
+      }
     },
   });
+
+  const dependencyGraph: Module = {
+    path: entry,
+    ast,
+    dependencies,
+  };
 
   return dependencyGraph;
 }
 
-function getBundle(dependencyGraph: Dependency): string {
+function getBundle(dependencyGraph: Module): string {
   const code = [];
 
   if (dependencyGraph.dependencies.length > 0) {
@@ -44,19 +59,7 @@ function getBundle(dependencyGraph: Dependency): string {
     }
   }
 
-  const ast = parse(dependencyGraph.code, { sourceType: 'module' });
-  traverse(ast, {
-    ImportDeclaration: (path) => {
-      path.remove();
-    },
-    ExportNamedDeclaration: (path) => {
-      const declaration = path.node.declaration;
-      // Check why we need to do type casting here?
-      path.replaceWith(declaration as _traverse.Node);
-    },
-  });
-
-  code.push(generate(ast).code);
+  code.push(generate(dependencyGraph.ast).code);
   return code.join('\n');
 }
 
