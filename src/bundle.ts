@@ -4,6 +4,7 @@ import { parse } from '@babel/parser';
 import _traverse from '@babel/traverse';
 // https://github.com/babel/babel/issues/13855#issuecomment-945123514
 const traverse = _traverse.default;
+import { generate } from '@babel/generator';
 
 type Dependency = {
   path: string;
@@ -18,10 +19,7 @@ function getDependencyGraph(entry: string): Dependency {
 
   const dependencyGraph: Dependency = {
     path: entry,
-    code: contents
-      .replaceAll(/import.*from.*/g, '')
-      .replaceAll(/export/g, '')
-      .trim(),
+    code: contents,
     dependencies: [],
   };
 
@@ -46,7 +44,19 @@ function getBundle(dependencyGraph: Dependency): string {
     }
   }
 
-  code.push(dependencyGraph.code);
+  const ast = parse(dependencyGraph.code, { sourceType: 'module' });
+  traverse(ast, {
+    ImportDeclaration: (path) => {
+      path.remove();
+    },
+    ExportNamedDeclaration: (path) => {
+      const declaration = path.node.declaration;
+      // Check why we need to do type casting here?
+      path.replaceWith(declaration as _traverse.Node);
+    },
+  });
+
+  code.push(generate(ast).code);
   return code.join('\n');
 }
 

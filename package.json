@@ -35,9 +35,11 @@
   },
   "homepage": "https://github.com/OmkarJ13/Redemption#readme",
   "devDependencies": {
+    "@babel/generator": "^7.27.0",
     "@babel/parser": "^7.27.0",
     "@babel/traverse": "^7.27.0",
     "@eslint/js": "^9.24.0",
+    "@types/babel__generator": "^7.27.0",
     "@types/babel__traverse": "^7.20.7",
     "@types/node": "^22.14.0",
     "@types/yargs": "^17.0.33",
