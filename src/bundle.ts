@@ -7,6 +7,7 @@ const traverse = _traverse.default;
 import { generate } from '@babel/generator';
 import {
   File,
+  functionExpression,
   identifier,
   isClassDeclaration,
   isFunctionDeclaration,
@@ -94,7 +95,31 @@ function getDependencyGraph(entry: string): Module {
       if (isClassDeclaration(declaration)) {
         // TODO
       } else if (isFunctionDeclaration(declaration)) {
-        // TODO
+        if (declaration.id) {
+          path.replaceWith(declaration);
+          const exportFunctionVariable = variableDeclaration('const', [
+            variableDeclarator(
+              identifier(`__redemption_default_export_${moduleId}`),
+              declaration.id
+            ),
+          ]);
+          path.insertAfter(exportFunctionVariable);
+        } else {
+          const expression = functionExpression(
+            null,
+            declaration.params,
+            declaration.body,
+            declaration.generator,
+            declaration.async
+          );
+          const exportFunctionVariable = variableDeclaration('const', [
+            variableDeclarator(
+              identifier(`__redemption_default_export_${moduleId}`),
+              expression
+            ),
+          ]);
+          path.replaceWith(exportFunctionVariable);
+        }
       } else if (isTSDeclareFunction(declaration)) {
         // TODO
       } else {

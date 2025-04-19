@@ -1,4 +1,4 @@
 import { name } from './name.js';
-import { hello as hello2 } from './hello.js';
+import hello from './hello.js';
 
-hello2(name);
+hello(name);
