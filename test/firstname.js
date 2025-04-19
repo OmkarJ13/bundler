@@ -1,2 +1,2 @@
-const firstName = 'Omkar';
-export default firstName;
+const omkar = 'Omkar';
+export default omkar;

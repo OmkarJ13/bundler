@@ -13,6 +13,7 @@ import {
   isImportDefaultSpecifier,
   isImportNamespaceSpecifier,
   isTSDeclareFunction,
+  VariableDeclaration,
   variableDeclaration,
   variableDeclarator,
 } from '@babel/types';
@@ -40,6 +41,8 @@ function getDependencyGraph(entry: string): Module {
       const childDependencyGraph: Module = getDependencyGraph(absolutePath);
       dependencies.push(childDependencyGraph);
 
+      const variableDeclarations: VariableDeclaration[] = [];
+
       for (const specifier of path.node.specifiers) {
         if (isImportDefaultSpecifier(specifier)) {
           const defaultImportVariable = variableDeclaration('const', [
@@ -50,7 +53,8 @@ function getDependencyGraph(entry: string): Module {
               )
             ),
           ]);
-          path.replaceWith(defaultImportVariable);
+
+          variableDeclarations.push(defaultImportVariable);
         } else if (isImportNamespaceSpecifier(specifier)) {
           // TODO
         } else {
@@ -62,15 +66,16 @@ function getDependencyGraph(entry: string): Module {
                   identifier(specifier.imported.name)
                 ),
               ]);
-              path.replaceWith(aliasedImportVariable);
-            } else {
-              path.remove();
+
+              variableDeclarations.push(aliasedImportVariable);
             }
           } else {
             // TODO: Handle StringLiteral imports
           }
         }
       }
+
+      path.replaceWithMultiple(variableDeclarations);
     },
     ExportNamedDeclaration: (path) => {
       const declaration = path.node.declaration;
