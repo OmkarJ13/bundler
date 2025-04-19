@@ -107,7 +107,6 @@ function getDependencyGraph(entry: string): Module {
         for (const specifier of path.node.specifiers) {
           if (isExportDefaultSpecifier(specifier)) {
             // TODO
-            console.log(specifier);
           } else if (isExportNamespaceSpecifier(specifier)) {
             // TODO
           } else {
