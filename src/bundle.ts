@@ -10,7 +10,8 @@ import {
   identifier,
   isClassDeclaration,
   isFunctionDeclaration,
-  isSpecifierDefault,
+  isImportDefaultSpecifier,
+  isImportNamespaceSpecifier,
   isTSDeclareFunction,
   variableDeclaration,
   variableDeclarator,
@@ -40,7 +41,7 @@ function getDependencyGraph(entry: string): Module {
       dependencies.push(childDependencyGraph);
 
       for (const specifier of path.node.specifiers) {
-        if (isSpecifierDefault(specifier)) {
+        if (isImportDefaultSpecifier(specifier)) {
           const defaultImportVariable = variableDeclaration('const', [
             variableDeclarator(
               identifier(specifier.local.name),
@@ -50,8 +51,10 @@ function getDependencyGraph(entry: string): Module {
             ),
           ]);
           path.replaceWith(defaultImportVariable);
+        } else if (isImportNamespaceSpecifier(specifier)) {
+          // TODO
         } else {
-          path.remove();
+          // TODO
         }
       }
     },
