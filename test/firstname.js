@@ -1,1 +1,2 @@
-export const firstName = 'Omkar';
+const firstName = 'Omkar';
+export default firstName;

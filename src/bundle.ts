@@ -5,9 +5,20 @@ import _traverse from '@babel/traverse';
 // https://github.com/babel/babel/issues/13855#issuecomment-945123514
 const traverse = _traverse.default;
 import { generate } from '@babel/generator';
-import { File } from '@babel/types';
+import {
+  File,
+  identifier,
+  isClassDeclaration,
+  isFunctionDeclaration,
+  isSpecifierDefault,
+  isTSDeclareFunction,
+  variableDeclaration,
+  variableDeclarator,
+} from '@babel/types';
+import { getId } from './utils.js';
 
 type Module = {
+  id: number;
   path: string;
   ast: ParseResult<File>;
   dependencies: Module[];
@@ -19,13 +30,30 @@ function getDependencyGraph(entry: string): Module {
   const ast = parse(contents, { sourceType: 'module' });
   const dependencies: Module[] = [];
 
+  const moduleId = getId();
+
   traverse(ast, {
     ImportDeclaration: (path) => {
       const importPath = path.node.source.value;
       const absolutePath = join(entryDir, importPath);
       const childDependencyGraph: Module = getDependencyGraph(absolutePath);
       dependencies.push(childDependencyGraph);
-      path.remove();
+
+      for (const specifier of path.node.specifiers) {
+        if (isSpecifierDefault(specifier)) {
+          const defaultImportVariable = variableDeclaration('const', [
+            variableDeclarator(
+              identifier(specifier.local.name),
+              identifier(
+                `__redemption_default_export_${childDependencyGraph.id}`
+              )
+            ),
+          ]);
+          path.replaceWith(defaultImportVariable);
+        } else {
+          path.remove();
+        }
+      }
     },
     ExportNamedDeclaration: (path) => {
       const declaration = path.node.declaration;
@@ -39,9 +67,28 @@ function getDependencyGraph(entry: string): Module {
         path.remove();
       }
     },
+    ExportDefaultDeclaration: (path) => {
+      const declaration = path.node.declaration;
+      if (isClassDeclaration(declaration)) {
+        // TODO
+      } else if (isFunctionDeclaration(declaration)) {
+        // TODO
+      } else if (isTSDeclareFunction(declaration)) {
+        // TODO
+      } else {
+        const defaultExportVariable = variableDeclaration('const', [
+          variableDeclarator(
+            identifier(`__redemption_default_export_${moduleId}`),
+            declaration
+          ),
+        ]);
+        path.replaceWith(defaultExportVariable);
+      }
+    },
   });
 
   const dependencyGraph: Module = {
+    id: moduleId,
     path: entry,
     ast,
     dependencies,
