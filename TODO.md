@@ -31,16 +31,18 @@
   - [x] Read through how rollup does this
   - [x] Understand the benefits vs. runtime require approach
   - [x] Implement a basic version, which concatenates files in order and removes basic imports and replaces export declarations with declarations
-  - [] Advanced exports
-    - [] Handle default exports
-    - [] Handle re-exports and module aggregations
-    - [] Handle aliased exports
-  - [] Advanced imports
-    - [] Handle default imports
-    - [] Handle aliased imports
+  - [ ] Advanced exports
+    - [x] Handle default exports
+    - [ ] Handle re-exports and module aggregations
+    - [ ] Handle aliased exports
+    - [ ] Handle string literal exports
+  - [ ] Advanced imports
+    - [x] Handle default imports
+    - [x] Handle aliased imports
+    - [ ] Handle string literal imports
 - [ ] Handle Variable Name Collisions
-  - [] Do a basic POC of this, basically rollup adds $n for duplicate declarations
-  - [] Handle edge case where if a variable name already contains the suffix that we added, it shouldn't collide again, re-run duplicate fixing logic until there are no more duplicates
+  - [ ] Do a basic POC of this, basically rollup adds $n for duplicate declarations
+  - [ ] Handle edge case where if a variable name already contains the suffix that we added, it shouldn't collide again, re-run duplicate fixing logic until there are no more duplicates
 
 ## 🎯 Chapter 4: Advanced Bundler
 
