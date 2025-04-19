@@ -1,2 +1,2 @@
 const omkar = 'Omkar';
-export default omkar;
+export { omkar as default };

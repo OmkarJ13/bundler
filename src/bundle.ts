@@ -11,6 +11,8 @@ import {
   functionExpression,
   identifier,
   isClassDeclaration,
+  isExportDefaultSpecifier,
+  isExportNamespaceSpecifier,
   isFunctionDeclaration,
   isImportDefaultSpecifier,
   isImportNamespaceSpecifier,
@@ -60,17 +62,31 @@ function getDependencyGraph(entry: string): Module {
         } else if (isImportNamespaceSpecifier(specifier)) {
           // TODO
         } else {
-          if (specifier.imported.type === 'Identifier') {
-            if (specifier.imported.name !== specifier.local.name) {
-              const aliasedImportVariable = variableDeclaration('const', [
+          if (
+            specifier.imported.type === 'Identifier' &&
+            specifier.imported.name !== specifier.local.name
+          ) {
+            let variable: VariableDeclaration;
+
+            if (specifier.imported.name === 'default') {
+              variable = variableDeclaration('const', [
+                variableDeclarator(
+                  identifier(specifier.local.name),
+                  identifier(
+                    `__redemption_default_export_${childDependencyGraph.id}`
+                  )
+                ),
+              ]);
+            } else {
+              variable = variableDeclaration('const', [
                 variableDeclarator(
                   identifier(specifier.local.name),
                   identifier(specifier.imported.name)
                 ),
               ]);
-
-              variableDeclarations.push(aliasedImportVariable);
             }
+
+            variableDeclarations.push(variable);
           } else {
             // TODO: Handle StringLiteral imports
           }
@@ -80,18 +96,55 @@ function getDependencyGraph(entry: string): Module {
       path.replaceWithMultiple(variableDeclarations);
     },
     ExportNamedDeclaration: (path) => {
+      // export const foo ...
+      // export { foo }
+      // export foo from './foo.js'
       const declaration = path.node.declaration;
       if (declaration) {
-        // Export contains a declaration, so we need to remove the export part while keeping the declaration
-        // export const foo = 'bar' will be replaced with const foo = 'bar';
         path.replaceWith(declaration);
       } else {
-        // Export doesn't contain declaration, so we can remove it completely.
-        // export { foo }; will be removed, as foo is already declared somewhere else, so no need to re-declaring it
-        path.remove();
+        const variableDeclarations: VariableDeclaration[] = [];
+        for (const specifier of path.node.specifiers) {
+          if (isExportDefaultSpecifier(specifier)) {
+            // TODO
+            console.log(specifier);
+          } else if (isExportNamespaceSpecifier(specifier)) {
+            // TODO
+          } else {
+            if (
+              specifier.exported.type === 'Identifier' &&
+              specifier.exported.name !== specifier.local.name
+            ) {
+              let variable: VariableDeclaration;
+
+              if (specifier.exported.name === 'default') {
+                variable = variableDeclaration('const', [
+                  variableDeclarator(
+                    identifier(`__redemption_default_export_${moduleId}`),
+                    identifier(specifier.local.name)
+                  ),
+                ]);
+              } else {
+                variable = variableDeclaration('const', [
+                  variableDeclarator(
+                    identifier(specifier.exported.name),
+                    identifier(specifier.local.name)
+                  ),
+                ]);
+              }
+
+              variableDeclarations.push(variable);
+            } else {
+              // TODO: Handle StringLiteral exports
+            }
+          }
+        }
+
+        path.replaceWithMultiple(variableDeclarations);
       }
     },
     ExportDefaultDeclaration: (path) => {
+      // export default foo;
       const declaration = path.node.declaration;
       if (isClassDeclaration(declaration)) {
         if (declaration.id) {
