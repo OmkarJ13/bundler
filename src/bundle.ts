@@ -54,7 +54,21 @@ function getDependencyGraph(entry: string): Module {
         } else if (isImportNamespaceSpecifier(specifier)) {
           // TODO
         } else {
-          // TODO
+          if (specifier.imported.type === 'Identifier') {
+            if (specifier.imported.name !== specifier.local.name) {
+              const aliasedImportVariable = variableDeclaration('const', [
+                variableDeclarator(
+                  identifier(specifier.local.name),
+                  identifier(specifier.imported.name)
+                ),
+              ]);
+              path.replaceWith(aliasedImportVariable);
+            } else {
+              path.remove();
+            }
+          } else {
+            // TODO: Handle StringLiteral imports
+          }
         }
       }
     },
