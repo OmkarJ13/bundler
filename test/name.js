@@ -1,4 +1,3 @@
-import { default as firstName } from './firstname.js';
-import { lastName } from './lastname.js';
+import firstName, { lastName } from './name/index.js';
 
 export const name = firstName + ' ' + lastName;

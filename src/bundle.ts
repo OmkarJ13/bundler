@@ -13,6 +13,7 @@ import {
   isClassDeclaration,
   isExportDefaultSpecifier,
   isExportNamespaceSpecifier,
+  isExportSpecifier,
   isFunctionDeclaration,
   isImportDefaultSpecifier,
   isImportNamespaceSpecifier,
@@ -96,50 +97,134 @@ function getDependencyGraph(entry: string): Module {
       path.replaceWithMultiple(variableDeclarations);
     },
     ExportNamedDeclaration: (path) => {
-      // export const foo ...
-      // export { foo }
-      // export foo from './foo.js'
-      const declaration = path.node.declaration;
-      if (declaration) {
-        path.replaceWith(declaration);
-      } else {
-        const variableDeclarations: VariableDeclaration[] = [];
-        for (const specifier of path.node.specifiers) {
-          if (isExportDefaultSpecifier(specifier)) {
-            // TODO
-          } else if (isExportNamespaceSpecifier(specifier)) {
-            // TODO
-          } else {
-            if (
-              specifier.exported.type === 'Identifier' &&
-              specifier.exported.name !== specifier.local.name
-            ) {
-              let variable: VariableDeclaration;
+      if (path.node.source) {
+        // export .. from ...
+        const importPath = path.node.source.value;
+        const absolutePath = join(entryDir, importPath);
+        const childDependencyGraph = getDependencyGraph(absolutePath);
+        dependencies.push(childDependencyGraph);
 
-              if (specifier.exported.name === 'default') {
-                variable = variableDeclaration('const', [
-                  variableDeclarator(
-                    identifier(`__redemption_default_export_${moduleId}`),
-                    identifier(specifier.local.name)
-                  ),
-                ]);
-              } else {
-                variable = variableDeclaration('const', [
-                  variableDeclarator(
-                    identifier(specifier.exported.name),
-                    identifier(specifier.local.name)
-                  ),
-                ]);
-              }
+        const specifiers = path.node.specifiers;
 
-              variableDeclarations.push(variable);
+        if (
+          specifiers.length === 1 &&
+          specifiers[0].exported.type === 'Identifier' &&
+          specifiers[0].exported.name === 'default'
+        ) {
+          // export { default } from './foo.js';
+          const variable = variableDeclaration('const', [
+            variableDeclarator(
+              identifier(`__redemption_default_export_${moduleId}`),
+              identifier(
+                `__redemption_default_export_${childDependencyGraph.id}`
+              )
+            ),
+          ]);
+          path.replaceWith(variable);
+        } else {
+          const variableDeclarations: VariableDeclaration[] = [];
+          for (const specifier of specifiers) {
+            if (isExportDefaultSpecifier(specifier)) {
+              // export foo from './foo.js';
+              const variable = variableDeclaration('const', [
+                variableDeclarator(
+                  identifier(specifier.exported.name),
+                  identifier(
+                    `__redemption_default_export_${childDependencyGraph.id}`
+                  )
+                ),
+              ]);
+              path.replaceWith(variable);
+              console.log(specifier);
+            } else if (isExportNamespaceSpecifier(specifier)) {
+              // export * as foo from './foo.js';
+              // TODO
             } else {
-              // TODO: Handle StringLiteral exports
+              if (
+                specifier.exported.type === 'Identifier' &&
+                specifier.exported.name !== specifier.local.name
+              ) {
+                let variable: VariableDeclaration;
+
+                if (specifier.exported.name === 'default') {
+                  // export { foo as default } from './foo.js';
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      identifier(`__redemption_default_export_${moduleId}`),
+                      identifier(specifier.local.name)
+                    ),
+                  ]);
+                } else if (specifier.local.name === 'default') {
+                  // export { default as foo } from './foo.js';
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      identifier(specifier.exported.name),
+                      identifier(
+                        `__redemption_default_export_${childDependencyGraph!.id}`
+                      )
+                    ),
+                  ]);
+                } else {
+                  // export { foo as bar } from './foo.js';
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      identifier(specifier.exported.name),
+                      identifier(specifier.local.name)
+                    ),
+                  ]);
+                }
+
+                variableDeclarations.push(variable);
+              } else if (specifier.exported.type === 'StringLiteral') {
+                // export { foo as 'bar-bar' } from './foo.js';
+                // TODO: Handle StringLiteral exports
+              }
             }
           }
+          path.replaceWithMultiple(variableDeclarations);
         }
+      } else {
+        const declaration = path.node.declaration;
+        if (declaration) {
+          // export const foo = 'bar';
+          path.replaceWith(declaration);
+        } else {
+          const variableDeclarations: VariableDeclaration[] = [];
+          for (const specifier of path.node.specifiers) {
+            if (isExportSpecifier(specifier)) {
+              if (
+                specifier.exported.type === 'Identifier' &&
+                specifier.exported.name !== specifier.local.name
+              ) {
+                let variable: VariableDeclaration;
 
-        path.replaceWithMultiple(variableDeclarations);
+                if (specifier.exported.name === 'default') {
+                  // export { foo as default };
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      identifier(`__redemption_default_export_${moduleId}`),
+                      identifier(specifier.local.name)
+                    ),
+                  ]);
+                } else {
+                  // export { foo as bar };
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      identifier(specifier.exported.name),
+                      identifier(specifier.local.name)
+                    ),
+                  ]);
+                }
+
+                variableDeclarations.push(variable);
+              } else if (specifier.exported.type === 'StringLiteral') {
+                // export { foo as 'bar-bar' };
+                // TODO: Handle StringLiteral exports
+              }
+            }
+          }
+          path.replaceWithMultiple(variableDeclarations);
+        }
       }
     },
     ExportDefaultDeclaration: (path) => {
