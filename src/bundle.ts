@@ -140,7 +140,6 @@ function transformNamedExports(
             ),
           ]);
           path.replaceWith(variable);
-          console.log(specifier);
         } else if (isExportNamespaceSpecifier(specifier)) {
           // export * as foo from './foo.js';
           // TODO
