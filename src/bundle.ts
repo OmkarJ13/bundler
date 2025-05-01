@@ -25,7 +25,7 @@ import {
   variableDeclaration,
   variableDeclarator,
 } from '@babel/types';
-import { getId } from './utils.js';
+import { getDefaultExportIdentifier, getId } from './utils.js';
 
 type Module = {
   id: number;
@@ -52,7 +52,7 @@ function transformImports(
       const defaultImportVariable = variableDeclaration('const', [
         variableDeclarator(
           identifier(specifier.local.name),
-          identifier(`__redemption_default_export_${childDependencyGraph.id}`)
+          getDefaultExportIdentifier(childDependencyGraph.id)
         ),
       ]);
 
@@ -72,9 +72,7 @@ function transformImports(
           variable = variableDeclaration('const', [
             variableDeclarator(
               identifier(specifier.local.name),
-              identifier(
-                `__redemption_default_export_${childDependencyGraph.id}`
-              )
+              getDefaultExportIdentifier(childDependencyGraph.id)
             ),
           ]);
         } else {
@@ -121,8 +119,8 @@ function transformNamedExports(
       // export { default } from './foo.js';
       const variable = variableDeclaration('const', [
         variableDeclarator(
-          identifier(`__redemption_default_export_${moduleId}`),
-          identifier(`__redemption_default_export_${childDependencyGraph.id}`)
+          getDefaultExportIdentifier(moduleId),
+          getDefaultExportIdentifier(childDependencyGraph.id)
         ),
       ]);
       path.replaceWith(variable);
@@ -134,9 +132,7 @@ function transformNamedExports(
           const variable = variableDeclaration('const', [
             variableDeclarator(
               identifier(specifier.exported.name),
-              identifier(
-                `__redemption_default_export_${childDependencyGraph.id}`
-              )
+              getDefaultExportIdentifier(childDependencyGraph.id)
             ),
           ]);
           path.replaceWith(variable);
@@ -154,7 +150,7 @@ function transformNamedExports(
               // export { foo as default } from './foo.js';
               variable = variableDeclaration('const', [
                 variableDeclarator(
-                  identifier(`__redemption_default_export_${moduleId}`),
+                  getDefaultExportIdentifier(moduleId),
                   identifier(specifier.local.name)
                 ),
               ]);
@@ -163,9 +159,7 @@ function transformNamedExports(
               variable = variableDeclaration('const', [
                 variableDeclarator(
                   identifier(specifier.exported.name),
-                  identifier(
-                    `__redemption_default_export_${childDependencyGraph!.id}`
-                  )
+                  getDefaultExportIdentifier(childDependencyGraph.id)
                 ),
               ]);
             } else {
@@ -206,7 +200,7 @@ function transformNamedExports(
               // export { foo as default };
               variable = variableDeclaration('const', [
                 variableDeclarator(
-                  identifier(`__redemption_default_export_${moduleId}`),
+                  getDefaultExportIdentifier(moduleId),
                   identifier(specifier.local.name)
                 ),
               ]);
@@ -243,7 +237,7 @@ function transformDefaultExports(
       path.replaceWith(declaration);
       const exportFunctionVariable = variableDeclaration('const', [
         variableDeclarator(
-          identifier(`__redemption_default_export_${moduleId}`),
+          getDefaultExportIdentifier(moduleId),
           declaration.id
         ),
       ]);
@@ -256,10 +250,7 @@ function transformDefaultExports(
         declaration.decorators
       );
       const exportClassVariable = variableDeclaration('const', [
-        variableDeclarator(
-          identifier(`__redemption_default_export_${moduleId}`),
-          expression
-        ),
+        variableDeclarator(getDefaultExportIdentifier(moduleId), expression),
       ]);
       path.replaceWith(exportClassVariable);
     }
@@ -268,7 +259,7 @@ function transformDefaultExports(
       path.replaceWith(declaration);
       const exportFunctionVariable = variableDeclaration('const', [
         variableDeclarator(
-          identifier(`__redemption_default_export_${moduleId}`),
+          getDefaultExportIdentifier(moduleId),
           declaration.id
         ),
       ]);
@@ -282,10 +273,7 @@ function transformDefaultExports(
         declaration.async
       );
       const exportFunctionVariable = variableDeclaration('const', [
-        variableDeclarator(
-          identifier(`__redemption_default_export_${moduleId}`),
-          expression
-        ),
+        variableDeclarator(getDefaultExportIdentifier(moduleId), expression),
       ]);
       path.replaceWith(exportFunctionVariable);
     }
@@ -293,10 +281,7 @@ function transformDefaultExports(
     // TODO Later
   } else {
     const defaultExportVariable = variableDeclaration('const', [
-      variableDeclarator(
-        identifier(`__redemption_default_export_${moduleId}`),
-        declaration
-      ),
+      variableDeclarator(getDefaultExportIdentifier(moduleId), declaration),
     ]);
     path.replaceWith(defaultExportVariable);
   }
