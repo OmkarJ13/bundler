@@ -13,6 +13,7 @@ describe('bundler', () => {
   for (const name of fixtures) {
     test(`should bundle: ${name}`, async () => {
       const entryFile = path.join(fixturesDir, name, 'index.js');
+      console.log(entryFile);
       const bundledCode = bundle(entryFile);
       await expect(bundledCode).toMatchFileSnapshot(
         `fixtures/${name}/bundle.js`
