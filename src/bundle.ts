@@ -48,15 +48,11 @@ export class Bundle {
     return this.id++;
   }
 
-  private transformImports(
-    dependencies: Module[],
-    entryDir: string,
-    path: NodePath<ImportDeclaration>
-  ) {
+  private transformImports(path: NodePath<ImportDeclaration>, module: Module) {
     const importPath = path.node.source.value;
-    const absolutePath = join(entryDir, importPath);
-    const childDependencyGraph: Module = this.getDependencyGraph(absolutePath);
-    dependencies.push(childDependencyGraph);
+    const dependency: Module = module.dependencies.find(
+      (dependency) => dependency.path === join(dirname(module.path), importPath)
+    )!;
 
     const variableDeclarations: VariableDeclaration[] = [];
 
@@ -66,7 +62,7 @@ export class Bundle {
         const defaultImportVariable = variableDeclaration('const', [
           variableDeclarator(
             identifier(specifier.local.name),
-            getDefaultExportIdentifier(childDependencyGraph.id)
+            getDefaultExportIdentifier(dependency.id)
           ),
         ]);
 
@@ -86,7 +82,7 @@ export class Bundle {
             variable = variableDeclaration('const', [
               variableDeclarator(
                 identifier(specifier.local.name),
-                getDefaultExportIdentifier(childDependencyGraph.id)
+                getDefaultExportIdentifier(dependency.id)
               ),
             ]);
           } else {
@@ -111,18 +107,17 @@ export class Bundle {
   }
 
   private transformNamedExports(
-    moduleId: number,
-    dependencies: Module[],
-    entryDir: string,
-    path: NodePath<ExportNamedDeclaration>
+    path: NodePath<ExportNamedDeclaration>,
+    module: Module
   ) {
-    if (path.node.source) {
-      // export .. from ...
-      const importPath = path.node.source.value;
-      const absolutePath = join(entryDir, importPath);
-      const childDependencyGraph = this.getDependencyGraph(absolutePath);
-      dependencies.push(childDependencyGraph);
+    const exportFromPath = path.node.source;
 
+    if (exportFromPath) {
+      // export .. from ...
+      const dependency = module.dependencies.find(
+        (dependency) =>
+          dependency.path === join(dirname(module.path), exportFromPath.value)
+      )!;
       const specifiers = path.node.specifiers;
 
       if (
@@ -133,8 +128,8 @@ export class Bundle {
         // export { default } from './foo.js';
         const variable = variableDeclaration('const', [
           variableDeclarator(
-            getDefaultExportIdentifier(moduleId),
-            getDefaultExportIdentifier(childDependencyGraph.id)
+            getDefaultExportIdentifier(module.id),
+            getDefaultExportIdentifier(dependency.id)
           ),
         ]);
         path.replaceWith(variable);
@@ -146,7 +141,7 @@ export class Bundle {
             const variable = variableDeclaration('const', [
               variableDeclarator(
                 identifier(specifier.exported.name),
-                getDefaultExportIdentifier(childDependencyGraph.id)
+                getDefaultExportIdentifier(dependency.id)
               ),
             ]);
             path.replaceWith(variable);
@@ -164,7 +159,7 @@ export class Bundle {
                 // export { foo as default } from './foo.js';
                 variable = variableDeclaration('const', [
                   variableDeclarator(
-                    getDefaultExportIdentifier(moduleId),
+                    getDefaultExportIdentifier(module.id),
                     identifier(specifier.local.name)
                   ),
                 ]);
@@ -173,7 +168,7 @@ export class Bundle {
                 variable = variableDeclaration('const', [
                   variableDeclarator(
                     identifier(specifier.exported.name),
-                    getDefaultExportIdentifier(childDependencyGraph.id)
+                    getDefaultExportIdentifier(dependency.id)
                   ),
                 ]);
               } else {
@@ -214,7 +209,7 @@ export class Bundle {
                 // export { foo as default };
                 variable = variableDeclaration('const', [
                   variableDeclarator(
-                    getDefaultExportIdentifier(moduleId),
+                    getDefaultExportIdentifier(module.id),
                     identifier(specifier.local.name)
                   ),
                 ]);
@@ -241,8 +236,8 @@ export class Bundle {
   }
 
   private transformDefaultExports(
-    moduleId: number,
-    path: NodePath<ExportDefaultDeclaration>
+    path: NodePath<ExportDefaultDeclaration>,
+    module: Module
   ) {
     // export default foo;
     const declaration = path.node.declaration;
@@ -251,7 +246,7 @@ export class Bundle {
         path.replaceWith(declaration);
         const exportFunctionVariable = variableDeclaration('const', [
           variableDeclarator(
-            getDefaultExportIdentifier(moduleId),
+            getDefaultExportIdentifier(module.id),
             declaration.id
           ),
         ]);
@@ -264,7 +259,7 @@ export class Bundle {
           declaration.decorators
         );
         const exportClassVariable = variableDeclaration('const', [
-          variableDeclarator(getDefaultExportIdentifier(moduleId), expression),
+          variableDeclarator(getDefaultExportIdentifier(module.id), expression),
         ]);
         path.replaceWith(exportClassVariable);
       }
@@ -273,7 +268,7 @@ export class Bundle {
         path.replaceWith(declaration);
         const exportFunctionVariable = variableDeclaration('const', [
           variableDeclarator(
-            getDefaultExportIdentifier(moduleId),
+            getDefaultExportIdentifier(module.id),
             declaration.id
           ),
         ]);
@@ -287,7 +282,7 @@ export class Bundle {
           declaration.async
         );
         const exportFunctionVariable = variableDeclaration('const', [
-          variableDeclarator(getDefaultExportIdentifier(moduleId), expression),
+          variableDeclarator(getDefaultExportIdentifier(module.id), expression),
         ]);
         path.replaceWith(exportFunctionVariable);
       }
@@ -295,55 +290,75 @@ export class Bundle {
       // TODO Later
     } else {
       const defaultExportVariable = variableDeclaration('const', [
-        variableDeclarator(getDefaultExportIdentifier(moduleId), declaration),
+        variableDeclarator(getDefaultExportIdentifier(module.id), declaration),
       ]);
       path.replaceWith(defaultExportVariable);
     }
   }
 
-  private getDependencyGraph(entry: string): Module {
-    const entryDir = dirname(entry);
-    const contents = fs.readFileSync(entry, 'utf-8');
+  private getDependencyModule(relativePath: string, directory: string): Module {
+    const absolutePath = join(directory, relativePath);
+    const dependencyModule = this.analyzeModule(absolutePath);
+    return dependencyModule;
+  }
+
+  private analyzeModule(modulePath: string): Module {
+    const moduleDirectory = dirname(modulePath);
+    const contents = fs.readFileSync(modulePath, 'utf-8');
     const ast = parse(contents, { sourceType: 'module' });
     const dependencies: Module[] = [];
 
     const moduleId = this.getId();
 
     traverse(ast, {
-      ImportDeclaration: (path) =>
-        this.transformImports(dependencies, entryDir, path),
-      ExportNamedDeclaration: (path) =>
-        this.transformNamedExports(moduleId, dependencies, entryDir, path),
-      ExportDefaultDeclaration: (path) =>
-        this.transformDefaultExports(moduleId, path),
+      ImportDeclaration: (path) => {
+        dependencies.push(
+          this.getDependencyModule(path.node.source.value, moduleDirectory)
+        );
+      },
+      ExportNamedDeclaration: (path) => {
+        if (path.node.source) {
+          dependencies.push(
+            this.getDependencyModule(path.node.source.value, moduleDirectory)
+          );
+        }
+      },
     });
 
-    const dependencyGraph: Module = {
+    const module: Module = {
       id: moduleId,
-      path: entry,
+      path: modulePath,
       ast,
       dependencies,
     };
 
-    return dependencyGraph;
+    return module;
   }
 
-  private getBundle(dependencyGraph: Module): string {
+  private getBundle(module: Module): string {
     let code = '';
 
-    if (dependencyGraph.dependencies.length > 0) {
-      for (const childDependency of dependencyGraph.dependencies) {
+    if (module.dependencies.length > 0) {
+      for (const childDependency of module.dependencies) {
         code += this.getBundle(childDependency);
       }
     }
 
-    code += generate(dependencyGraph.ast).code + '\n';
+    traverse(module.ast, {
+      ImportDeclaration: (path) => this.transformImports(path, module),
+      ExportNamedDeclaration: (path) =>
+        this.transformNamedExports(path, module),
+      ExportDefaultDeclaration: (path) =>
+        this.transformDefaultExports(path, module),
+    });
+
+    code += generate(module.ast).code + '\n';
     return code;
   }
 
   bundle(): string {
-    const dependencyGraph = this.getDependencyGraph(this.entryPath);
-    const bundledCode = this.getBundle(dependencyGraph);
+    const module = this.analyzeModule(this.entryPath);
+    const bundledCode = this.getBundle(module);
 
     if (this.outputPath) {
       fs.writeFileSync(this.outputPath, bundledCode);
