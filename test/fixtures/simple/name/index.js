@@ -1,2 +1,2 @@
 export { default } from './firstname.js';
-export { lastName } from './lastName.js';
+export { lastName } from './lastname.js';
