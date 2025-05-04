@@ -289,6 +289,7 @@ function transformDefaultExports(
 
 function getDependencyGraph(entry: string): Module {
   const entryDir = dirname(entry);
+  console.log('Reading', entry);
   const contents = fs.readFileSync(entry, 'utf-8');
   const ast = parse(contents, { sourceType: 'module' });
   const dependencies: Module[] = [];
