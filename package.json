@@ -4,7 +4,8 @@
   "description": "A minimal JavaScript bundler",
   "main": "./dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test-watch": "vitest",
     "build": "tsc",
     "typescript:check": "tsc --noEmit",
     "watch": "tsc --watch",
@@ -50,7 +51,8 @@
     "lint-staged": "^15.5.0",
     "prettier": "3.5.3",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.29.0"
+    "typescript-eslint": "^8.29.0",
+    "vitest": "^3.1.2"
   },
   "dependencies": {
     "yargs": "^17.7.2"

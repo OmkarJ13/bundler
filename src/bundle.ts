@@ -1,9 +1,7 @@
 import * as fs from 'fs';
 import { join, dirname } from 'path';
 import { parse, ParseResult } from '@babel/parser';
-import _traverse, { NodePath } from '@babel/traverse';
-// https://github.com/babel/babel/issues/13855#issuecomment-945123514
-const traverse = _traverse.default;
+import traverse, { NodePath } from '@babel/traverse';
 import { generate } from '@babel/generator';
 import {
   classExpression,
@@ -325,8 +323,13 @@ function getBundle(dependencyGraph: Module): string {
   return code.join('\n');
 }
 
-export function bundle(entryFile: string, outputFile: string): void {
+export function bundle(entryFile: string, outputFile?: string): string {
   const dependencyGraph = getDependencyGraph(entryFile);
   const bundledCode = getBundle(dependencyGraph);
-  fs.writeFileSync(outputFile, bundledCode);
+
+  if (outputFile) {
+    fs.writeFileSync(outputFile, bundledCode);
+  }
+
+  return bundledCode;
 }
