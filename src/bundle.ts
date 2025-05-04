@@ -311,16 +311,16 @@ function getDependencyGraph(entry: string): Module {
 }
 
 function getBundle(dependencyGraph: Module): string {
-  const code = [];
+  let code = '';
 
   if (dependencyGraph.dependencies.length > 0) {
     for (const childDependency of dependencyGraph.dependencies) {
-      code.push(getBundle(childDependency));
+      code += getBundle(childDependency);
     }
   }
 
-  code.push(generate(dependencyGraph.ast).code);
-  return code.join('\n');
+  code += generate(dependencyGraph.ast).code + '\n';
+  return code;
 }
 
 export function bundle(entryFile: string, outputFile?: string): string {
