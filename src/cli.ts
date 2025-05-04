@@ -2,7 +2,7 @@
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { bundle } from './bundle.js';
+import { Bundle } from './bundle.js';
 
 yargs()
   .scriptName('redemption')
@@ -22,7 +22,8 @@ yargs()
         });
     },
     (argv) => {
-      bundle(argv.entry, argv.output);
+      const bundle = new Bundle(argv.entry, argv.output);
+      bundle.bundle();
     }
   )
   .help()
