@@ -9,14 +9,18 @@ const fixtures = fs.readdirSync(fixturesDir).filter((name) => {
   return fs.statSync(fullPath).isDirectory();
 });
 
-describe('bundler', () => {
+describe('bundler', async () => {
   for (const name of fixtures) {
-    test(`should bundle: ${name}`, async () => {
-      const entryPath = path.join(fixturesDir, name, 'index.js');
+    const fixturePath = path.join(fixturesDir, name);
+    const configPath = path.join(fixturePath, '_config.js');
+    const { default: config } = await import(configPath);
+
+    test(config.description, async () => {
+      const entryPath = path.join(fixturePath, 'index.js');
       const bundle = new Bundle(entryPath);
       const bundledCode = bundle.bundle();
       await expect(bundledCode).toMatchFileSnapshot(
-        `fixtures/${name}/bundle.js`
+        `fixtures/${name}/_expected.js`
       );
     });
   }
