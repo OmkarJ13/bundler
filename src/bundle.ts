@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { join, dirname, resolve } from 'path';
+import { join, dirname } from 'path';
 import { parse, ParseResult } from '@babel/parser';
 import traverse, { NodePath } from '@babel/traverse';
 import { generate } from '@babel/generator';
@@ -38,7 +38,7 @@ function transformImports(
   path: NodePath<ImportDeclaration>
 ) {
   const importPath = path.node.source.value;
-  const absolutePath = resolve(entryDir, importPath);
+  const absolutePath = join(entryDir, importPath);
   const childDependencyGraph: Module = getDependencyGraph(absolutePath);
   dependencies.push(childDependencyGraph);
 
