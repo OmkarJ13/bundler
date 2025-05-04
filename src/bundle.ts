@@ -38,6 +38,7 @@ function transformImports(
   path: NodePath<ImportDeclaration>
 ) {
   const importPath = path.node.source.value;
+  console.log(entryDir, importPath);
   const absolutePath = resolve(entryDir, importPath);
   const childDependencyGraph: Module = getDependencyGraph(absolutePath);
   dependencies.push(childDependencyGraph);
@@ -103,6 +104,7 @@ function transformNamedExports(
   if (path.node.source) {
     // export .. from ...
     const importPath = path.node.source.value;
+    console.log(entryDir, importPath);
     const absolutePath = resolve(entryDir, importPath);
     const childDependencyGraph = getDependencyGraph(absolutePath);
     dependencies.push(childDependencyGraph);
