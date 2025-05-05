@@ -15,6 +15,8 @@ export class Module {
 
   dependencies: Module[] = [];
 
+  namedExports: string[] = [];
+
   constructor(path: string, id = 0) {
     this.id = id;
     this.path = path;
@@ -24,6 +26,7 @@ export class Module {
     this.ast = parse(contents, { sourceType: 'module' });
 
     this.analyseDependencies();
+    this.analyseNamedExports();
   }
 
   private analyseDependencies() {
@@ -47,5 +50,44 @@ export class Module {
     const absolutePath = join(directory, relativePath);
     const dependencyModule = new Module(absolutePath, this.id++);
     return dependencyModule;
+  }
+
+  private analyseNamedExports() {
+    traverse(this.ast, {
+      ExportNamedDeclaration: (path) => {
+        const { declaration, specifiers } = path.node;
+
+        if (declaration) {
+          switch (declaration.type) {
+            case 'FunctionDeclaration':
+            case 'ClassDeclaration':
+              if (declaration.id) {
+                this.namedExports.push(declaration.id.name);
+              }
+              break;
+            case 'VariableDeclaration':
+              declaration.declarations.forEach((declaration) => {
+                if (declaration.id.type === 'Identifier') {
+                  this.namedExports.push(declaration.id.name);
+                }
+              });
+              break;
+          }
+        }
+
+        specifiers.forEach((spec) => {
+          switch (spec.exported.type) {
+            case 'Identifier':
+              if (spec.exported.name !== 'default') {
+                this.namedExports.push(spec.exported.name);
+              }
+              break;
+            case 'StringLiteral':
+              this.namedExports.push(spec.exported.value);
+              break;
+          }
+        });
+      },
+    });
   }
 }
