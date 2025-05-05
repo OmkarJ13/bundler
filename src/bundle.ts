@@ -1,13 +1,11 @@
 import * as fs from 'fs';
 import { join, dirname } from 'path';
-import { parse, ParseResult } from '@babel/parser';
 import traverse, { NodePath } from '@babel/traverse';
 import { generate } from '@babel/generator';
 import {
   classExpression,
   ExportDefaultDeclaration,
   ExportNamedDeclaration,
-  File,
   functionExpression,
   identifier,
   ImportDeclaration,
@@ -24,17 +22,9 @@ import {
   variableDeclarator,
 } from '@babel/types';
 import { getDefaultExportIdentifier } from './utils.js';
-
-type Module = {
-  id: number;
-  path: string;
-  ast: ParseResult<File>;
-  dependencies: Module[];
-};
+import { Module } from './module.js';
 
 export class Bundle {
-  private id = 0;
-
   private entryPath: string;
 
   private outputPath: string | undefined;
@@ -42,10 +32,6 @@ export class Bundle {
   constructor(entryPath: string, outputPath?: string) {
     this.entryPath = entryPath;
     this.outputPath = outputPath;
-  }
-
-  private getId() {
-    return this.id++;
   }
 
   private transformImports(path: NodePath<ImportDeclaration>, module: Module) {
@@ -296,45 +282,6 @@ export class Bundle {
     }
   }
 
-  private getDependencyModule(relativePath: string, directory: string): Module {
-    const absolutePath = join(directory, relativePath);
-    const dependencyModule = this.analyzeModule(absolutePath);
-    return dependencyModule;
-  }
-
-  private analyzeModule(modulePath: string): Module {
-    const moduleDirectory = dirname(modulePath);
-    const contents = fs.readFileSync(modulePath, 'utf-8');
-    const ast = parse(contents, { sourceType: 'module' });
-    const dependencies: Module[] = [];
-
-    const moduleId = this.getId();
-
-    traverse(ast, {
-      ImportDeclaration: (path) => {
-        dependencies.push(
-          this.getDependencyModule(path.node.source.value, moduleDirectory)
-        );
-      },
-      ExportNamedDeclaration: (path) => {
-        if (path.node.source) {
-          dependencies.push(
-            this.getDependencyModule(path.node.source.value, moduleDirectory)
-          );
-        }
-      },
-    });
-
-    const module: Module = {
-      id: moduleId,
-      path: modulePath,
-      ast,
-      dependencies,
-    };
-
-    return module;
-  }
-
   private getBundle(module: Module): string {
     let code = '';
 
@@ -357,7 +304,7 @@ export class Bundle {
   }
 
   bundle(): string {
-    const module = this.analyzeModule(this.entryPath);
+    const module = new Module(this.entryPath);
     const bundledCode = this.getBundle(module);
 
     if (this.outputPath) {
