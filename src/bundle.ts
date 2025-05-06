@@ -3,6 +3,7 @@ import { join, dirname } from 'path';
 import traverse, { NodePath } from '@babel/traverse';
 import { generate } from '@babel/generator';
 import {
+  callExpression,
   classExpression,
   ExportDefaultDeclaration,
   ExportNamedDeclaration,
@@ -17,6 +18,10 @@ import {
   isImportDefaultSpecifier,
   isImportNamespaceSpecifier,
   isTSDeclareFunction,
+  memberExpression,
+  objectExpression,
+  objectProperty,
+  stringLiteral,
   VariableDeclaration,
   variableDeclaration,
   variableDeclarator,
@@ -55,7 +60,26 @@ export class Bundle {
         variableDeclarations.push(defaultImportVariable);
       } else if (isImportNamespaceSpecifier(specifier)) {
         // import * as foo from './foo.js';
-        // TODO
+        const namespaceVariable = variableDeclaration('const', [
+          variableDeclarator(
+            identifier(specifier.local.name),
+            callExpression(
+              memberExpression(identifier('Object'), identifier('freeze')),
+              [
+                objectExpression(
+                  dependency.namedExports.map((namedExport) =>
+                    objectProperty(
+                      stringLiteral(namedExport),
+                      identifier(namedExport)
+                    )
+                  )
+                ),
+              ]
+            )
+          ),
+        ]);
+
+        variableDeclarations.push(namespaceVariable);
       } else {
         if (
           specifier.imported.type === 'Identifier' &&
