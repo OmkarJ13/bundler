@@ -13,7 +13,6 @@ import {
   isClassDeclaration,
   isExportDefaultSpecifier,
   isExportNamespaceSpecifier,
-  isExportSpecifier,
   isFunctionDeclaration,
   isTSDeclareFunction,
   memberExpression,
@@ -210,36 +209,44 @@ export class Bundle {
       } else {
         const variableDeclarations: VariableDeclaration[] = [];
         for (const specifier of path.node.specifiers) {
-          if (isExportSpecifier(specifier)) {
-            if (
-              specifier.exported.type === 'Identifier' &&
-              specifier.exported.name !== specifier.local.name
-            ) {
-              let variable: VariableDeclaration;
+          let variable: VariableDeclaration;
 
-              if (specifier.exported.name === 'default') {
-                // export { foo as default };
-                variable = variableDeclaration('const', [
-                  variableDeclarator(
-                    getDefaultExportIdentifier(module.id),
-                    identifier(specifier.local.name)
-                  ),
-                ]);
-              } else {
-                // export { foo as bar };
-                variable = variableDeclaration('const', [
-                  variableDeclarator(
-                    identifier(specifier.exported.name),
-                    identifier(specifier.local.name)
-                  ),
-                ]);
+          switch (specifier.type) {
+            case 'ExportDefaultSpecifier':
+              break;
+            case 'ExportNamespaceSpecifier':
+              break;
+            case 'ExportSpecifier':
+              switch (specifier.exported.type) {
+                case 'Identifier':
+                  if (specifier.exported.name !== specifier.local.name) {
+                    if (specifier.exported.name === 'default') {
+                      // export { foo as default };
+                      variable = variableDeclaration('const', [
+                        variableDeclarator(
+                          getDefaultExportIdentifier(module.id),
+                          identifier(specifier.local.name)
+                        ),
+                      ]);
+                    } else {
+                      // export { foo as bar };
+                      variable = variableDeclaration('const', [
+                        variableDeclarator(
+                          identifier(specifier.exported.name),
+                          identifier(specifier.local.name)
+                        ),
+                      ]);
+                    }
+
+                    variableDeclarations.push(variable);
+                  }
+                  break;
+                case 'StringLiteral':
+                  // export { foo as 'bar-bar' };
+                  // TODO: Handle StringLiteral exports
+                  break;
               }
-
-              variableDeclarations.push(variable);
-            } else if (specifier.exported.type === 'StringLiteral') {
-              // export { foo as 'bar-bar' };
-              // TODO: Handle StringLiteral exports
-            }
+              break;
           }
         }
         path.replaceWithMultiple(variableDeclarations);
