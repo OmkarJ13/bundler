@@ -15,8 +15,6 @@ import {
   isExportNamespaceSpecifier,
   isExportSpecifier,
   isFunctionDeclaration,
-  isImportDefaultSpecifier,
-  isImportNamespaceSpecifier,
   isTSDeclareFunction,
   memberExpression,
   objectExpression,
@@ -48,68 +46,72 @@ export class Bundle {
     const variableDeclarations: VariableDeclaration[] = [];
 
     for (const specifier of path.node.specifiers) {
-      if (isImportDefaultSpecifier(specifier)) {
-        // import foo from './foo.js';
-        const defaultImportVariable = variableDeclaration('const', [
-          variableDeclarator(
-            identifier(specifier.local.name),
-            getDefaultExportIdentifier(dependency.id)
-          ),
-        ]);
+      let variable: VariableDeclaration;
 
-        variableDeclarations.push(defaultImportVariable);
-      } else if (isImportNamespaceSpecifier(specifier)) {
-        // import * as foo from './foo.js';
-        const namespaceVariable = variableDeclaration('const', [
-          variableDeclarator(
-            identifier(specifier.local.name),
-            callExpression(
-              memberExpression(identifier('Object'), identifier('freeze')),
-              [
-                objectExpression(
-                  dependency.namedExports.map((namedExport) =>
-                    objectProperty(
-                      stringLiteral(namedExport),
-                      identifier(namedExport)
-                    )
-                  )
-                ),
-              ]
-            )
-          ),
-        ]);
-
-        variableDeclarations.push(namespaceVariable);
-      } else {
-        if (
-          specifier.imported.type === 'Identifier' &&
-          specifier.imported.name !== specifier.local.name
-        ) {
-          let variable: VariableDeclaration;
-
-          if (specifier.imported.name === 'default') {
-            // import { default as foo } from './foo.js';
-            variable = variableDeclaration('const', [
-              variableDeclarator(
-                identifier(specifier.local.name),
-                getDefaultExportIdentifier(dependency.id)
-              ),
-            ]);
-          } else {
-            // import { foo as bar } from './foo.js';
-            variable = variableDeclaration('const', [
-              variableDeclarator(
-                identifier(specifier.local.name),
-                identifier(specifier.imported.name)
-              ),
-            ]);
-          }
-
+      switch (specifier.type) {
+        case 'ImportDefaultSpecifier':
+          // import foo from './foo.js';
+          variable = variableDeclaration('const', [
+            variableDeclarator(
+              identifier(specifier.local.name),
+              getDefaultExportIdentifier(dependency.id)
+            ),
+          ]);
           variableDeclarations.push(variable);
-        } else if (specifier.imported.type === 'StringLiteral') {
-          // import { 'bar-bar' as foo } from './foo.js';
-          // TODO: Handle StringLiteral imports
-        }
+          break;
+        case 'ImportNamespaceSpecifier':
+          // import * as foo from './foo.js';
+          variable = variableDeclaration('const', [
+            variableDeclarator(
+              identifier(specifier.local.name),
+              callExpression(
+                memberExpression(identifier('Object'), identifier('freeze')),
+                [
+                  objectExpression(
+                    dependency.namedExports.map((namedExport) =>
+                      objectProperty(
+                        stringLiteral(namedExport),
+                        identifier(namedExport)
+                      )
+                    )
+                  ),
+                ]
+              )
+            ),
+          ]);
+          variableDeclarations.push(variable);
+          break;
+        case 'ImportSpecifier':
+          switch (specifier.imported.type) {
+            case 'Identifier':
+              if (specifier.imported.name !== specifier.local.name) {
+                if (specifier.imported.name === 'default') {
+                  // import { default as foo } from './foo.js';
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      identifier(specifier.local.name),
+                      getDefaultExportIdentifier(dependency.id)
+                    ),
+                  ]);
+                } else {
+                  // import { foo as bar } from './foo.js';
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      identifier(specifier.local.name),
+                      identifier(specifier.imported.name)
+                    ),
+                  ]);
+                }
+
+                variableDeclarations.push(variable);
+              }
+              break;
+            case 'StringLiteral':
+              // import { 'bar-bar' as foo } from './foo.js';
+              // TODO: Handle StringLiteral imports
+              break;
+          }
+          break;
       }
     }
 
