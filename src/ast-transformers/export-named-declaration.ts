@@ -5,12 +5,10 @@ import {
   isExportDefaultSpecifier,
   isExportNamespaceSpecifier,
   VariableDeclaration,
-  variableDeclaration,
-  variableDeclarator,
 } from '@babel/types';
 import { dirname, join } from 'path';
 import { Module } from 'src/module';
-import { getDefaultExportIdentifier } from 'src/utils';
+import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
 
 function transformReExports(
   path: NodePath<ExportNamedDeclaration>,
@@ -30,24 +28,20 @@ function transformReExports(
     specifiers[0].exported.name === 'default'
   ) {
     // export { default } from './foo.js';
-    const variable = variableDeclaration('const', [
-      variableDeclarator(
-        getDefaultExportIdentifier(module.id),
-        getDefaultExportIdentifier(dependency.id)
-      ),
-    ]);
+    const variable = declareConst(
+      getDefaultExportIdentifierName(module.id),
+      identifier(getDefaultExportIdentifierName(dependency.id))
+    );
     path.replaceWith(variable);
   } else {
     const variableDeclarations: VariableDeclaration[] = [];
     for (const specifier of specifiers) {
       if (isExportDefaultSpecifier(specifier)) {
         // export foo from './foo.js';
-        const variable = variableDeclaration('const', [
-          variableDeclarator(
-            identifier(specifier.exported.name),
-            getDefaultExportIdentifier(dependency.id)
-          ),
-        ]);
+        const variable = declareConst(
+          specifier.exported.name,
+          identifier(getDefaultExportIdentifierName(dependency.id))
+        );
         path.replaceWith(variable);
       } else if (isExportNamespaceSpecifier(specifier)) {
         // export * as foo from './foo.js';
@@ -61,28 +55,22 @@ function transformReExports(
 
           if (specifier.exported.name === 'default') {
             // export { foo as default } from './foo.js';
-            variable = variableDeclaration('const', [
-              variableDeclarator(
-                getDefaultExportIdentifier(module.id),
-                identifier(specifier.local.name)
-              ),
-            ]);
+            variable = declareConst(
+              getDefaultExportIdentifierName(module.id),
+              identifier(specifier.local.name)
+            );
           } else if (specifier.local.name === 'default') {
             // export { default as foo } from './foo.js';
-            variable = variableDeclaration('const', [
-              variableDeclarator(
-                identifier(specifier.exported.name),
-                getDefaultExportIdentifier(dependency.id)
-              ),
-            ]);
+            variable = declareConst(
+              specifier.exported.name,
+              identifier(getDefaultExportIdentifierName(dependency.id))
+            );
           } else {
             // export { foo as bar } from './foo.js';
-            variable = variableDeclaration('const', [
-              variableDeclarator(
-                identifier(specifier.exported.name),
-                identifier(specifier.local.name)
-              ),
-            ]);
+            variable = declareConst(
+              specifier.exported.name,
+              identifier(specifier.local.name)
+            );
           }
 
           variableDeclarations.push(variable);
@@ -120,20 +108,16 @@ function transformExports(
               if (specifier.exported.name !== specifier.local.name) {
                 if (specifier.exported.name === 'default') {
                   // export { foo as default };
-                  variable = variableDeclaration('const', [
-                    variableDeclarator(
-                      getDefaultExportIdentifier(module.id),
-                      identifier(specifier.local.name)
-                    ),
-                  ]);
+                  variable = declareConst(
+                    getDefaultExportIdentifierName(module.id),
+                    identifier(specifier.local.name)
+                  );
                 } else {
                   // export { foo as bar };
-                  variable = variableDeclaration('const', [
-                    variableDeclarator(
-                      identifier(specifier.exported.name),
-                      identifier(specifier.local.name)
-                    ),
-                  ]);
+                  variable = declareConst(
+                    specifier.exported.name,
+                    identifier(specifier.local.name)
+                  );
                 }
 
                 variableDeclarations.push(variable);

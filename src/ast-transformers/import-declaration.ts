@@ -7,13 +7,11 @@ import {
   objectExpression,
   objectProperty,
   stringLiteral,
-  variableDeclaration,
   VariableDeclaration,
-  variableDeclarator,
 } from '@babel/types';
 import { dirname, join } from 'path';
 import { Module } from 'src/module';
-import { getDefaultExportIdentifier } from 'src/utils';
+import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
 
 export default function (path: NodePath<ImportDeclaration>, module: Module) {
   const importPath = path.node.source.value;
@@ -29,34 +27,30 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
     switch (specifier.type) {
       case 'ImportDefaultSpecifier':
         // import foo from './foo.js';
-        variable = variableDeclaration('const', [
-          variableDeclarator(
-            identifier(specifier.local.name),
-            getDefaultExportIdentifier(dependency.id)
-          ),
-        ]);
+        variable = declareConst(
+          specifier.local.name,
+          identifier(getDefaultExportIdentifierName(dependency.id))
+        );
         variableDeclarations.push(variable);
         break;
       case 'ImportNamespaceSpecifier':
         // import * as foo from './foo.js';
-        variable = variableDeclaration('const', [
-          variableDeclarator(
-            identifier(specifier.local.name),
-            callExpression(
-              memberExpression(identifier('Object'), identifier('freeze')),
-              [
-                objectExpression(
-                  dependency.namedExports.map((namedExport) =>
-                    objectProperty(
-                      stringLiteral(namedExport),
-                      identifier(namedExport)
-                    )
+        variable = declareConst(
+          specifier.local.name,
+          callExpression(
+            memberExpression(identifier('Object'), identifier('freeze')),
+            [
+              objectExpression(
+                dependency.namedExports.map((namedExport) =>
+                  objectProperty(
+                    stringLiteral(namedExport),
+                    identifier(namedExport)
                   )
-                ),
-              ]
-            )
-          ),
-        ]);
+                )
+              ),
+            ]
+          )
+        );
         variableDeclarations.push(variable);
         break;
       case 'ImportSpecifier':
@@ -65,20 +59,16 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
             if (specifier.imported.name !== specifier.local.name) {
               if (specifier.imported.name === 'default') {
                 // import { default as foo } from './foo.js';
-                variable = variableDeclaration('const', [
-                  variableDeclarator(
-                    identifier(specifier.local.name),
-                    getDefaultExportIdentifier(dependency.id)
-                  ),
-                ]);
+                variable = declareConst(
+                  specifier.local.name,
+                  identifier(getDefaultExportIdentifierName(dependency.id))
+                );
               } else {
                 // import { foo as bar } from './foo.js';
-                variable = variableDeclaration('const', [
-                  variableDeclarator(
-                    identifier(specifier.local.name),
-                    identifier(specifier.imported.name)
-                  ),
-                ]);
+                variable = declareConst(
+                  specifier.local.name,
+                  identifier(specifier.imported.name)
+                );
               }
 
               variableDeclarations.push(variable);

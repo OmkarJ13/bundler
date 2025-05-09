@@ -5,11 +5,9 @@ import {
   ExportDefaultDeclaration,
   FunctionDeclaration,
   functionExpression,
-  variableDeclaration,
-  variableDeclarator,
 } from '@babel/types';
 import { Module } from 'src/module';
-import { getDefaultExportIdentifier } from 'src/utils';
+import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
 
 function transformClassDeclaration(
   path: NodePath<ExportDefaultDeclaration>,
@@ -19,9 +17,10 @@ function transformClassDeclaration(
 
   if (declaration.id) {
     path.replaceWith(declaration);
-    const exportFunctionVariable = variableDeclaration('const', [
-      variableDeclarator(getDefaultExportIdentifier(module.id), declaration.id),
-    ]);
+    const exportFunctionVariable = declareConst(
+      getDefaultExportIdentifierName(module.id),
+      declaration.id
+    );
     path.insertAfter(exportFunctionVariable);
   } else {
     const expression = classExpression(
@@ -30,9 +29,10 @@ function transformClassDeclaration(
       declaration.body,
       declaration.decorators
     );
-    const exportClassVariable = variableDeclaration('const', [
-      variableDeclarator(getDefaultExportIdentifier(module.id), expression),
-    ]);
+    const exportClassVariable = declareConst(
+      getDefaultExportIdentifierName(module.id),
+      expression
+    );
     path.replaceWith(exportClassVariable);
   }
 }
@@ -44,9 +44,10 @@ function transformFunctionDeclaration(
   const declaration = path.node.declaration as FunctionDeclaration;
   if (declaration.id) {
     path.replaceWith(declaration);
-    const exportFunctionVariable = variableDeclaration('const', [
-      variableDeclarator(getDefaultExportIdentifier(module.id), declaration.id),
-    ]);
+    const exportFunctionVariable = declareConst(
+      getDefaultExportIdentifierName(module.id),
+      declaration.id
+    );
     path.insertAfter(exportFunctionVariable);
   } else {
     const expression = functionExpression(
@@ -56,9 +57,10 @@ function transformFunctionDeclaration(
       declaration.generator,
       declaration.async
     );
-    const exportFunctionVariable = variableDeclaration('const', [
-      variableDeclarator(getDefaultExportIdentifier(module.id), expression),
-    ]);
+    const exportFunctionVariable = declareConst(
+      getDefaultExportIdentifierName(module.id),
+      expression
+    );
     path.replaceWith(exportFunctionVariable);
   }
 }
@@ -80,9 +82,10 @@ export default function (
       /* */
       break;
     default: {
-      const defaultExportVariable = variableDeclaration('const', [
-        variableDeclarator(getDefaultExportIdentifier(module.id), declaration),
-      ]);
+      const defaultExportVariable = declareConst(
+        getDefaultExportIdentifierName(module.id),
+        declaration
+      );
       path.replaceWith(defaultExportVariable);
       break;
     }
