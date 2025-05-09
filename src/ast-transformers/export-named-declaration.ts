@@ -12,139 +12,153 @@ import { dirname, join } from 'path';
 import { Module } from 'src/module';
 import { getDefaultExportIdentifier } from 'src/utils';
 
+function transformReExports(
+  path: NodePath<ExportNamedDeclaration>,
+  module: Module
+) {
+  const exportFromPath = path.node.source!;
+
+  const dependency = module.dependencies.find(
+    (dependency) =>
+      dependency.path === join(dirname(module.path), exportFromPath.value)
+  )!;
+  const specifiers = path.node.specifiers;
+
+  if (
+    specifiers.length === 1 &&
+    specifiers[0].exported.type === 'Identifier' &&
+    specifiers[0].exported.name === 'default'
+  ) {
+    // export { default } from './foo.js';
+    const variable = variableDeclaration('const', [
+      variableDeclarator(
+        getDefaultExportIdentifier(module.id),
+        getDefaultExportIdentifier(dependency.id)
+      ),
+    ]);
+    path.replaceWith(variable);
+  } else {
+    const variableDeclarations: VariableDeclaration[] = [];
+    for (const specifier of specifiers) {
+      if (isExportDefaultSpecifier(specifier)) {
+        // export foo from './foo.js';
+        const variable = variableDeclaration('const', [
+          variableDeclarator(
+            identifier(specifier.exported.name),
+            getDefaultExportIdentifier(dependency.id)
+          ),
+        ]);
+        path.replaceWith(variable);
+      } else if (isExportNamespaceSpecifier(specifier)) {
+        // export * as foo from './foo.js';
+        // TODO
+      } else {
+        if (
+          specifier.exported.type === 'Identifier' &&
+          specifier.exported.name !== specifier.local.name
+        ) {
+          let variable: VariableDeclaration;
+
+          if (specifier.exported.name === 'default') {
+            // export { foo as default } from './foo.js';
+            variable = variableDeclaration('const', [
+              variableDeclarator(
+                getDefaultExportIdentifier(module.id),
+                identifier(specifier.local.name)
+              ),
+            ]);
+          } else if (specifier.local.name === 'default') {
+            // export { default as foo } from './foo.js';
+            variable = variableDeclaration('const', [
+              variableDeclarator(
+                identifier(specifier.exported.name),
+                getDefaultExportIdentifier(dependency.id)
+              ),
+            ]);
+          } else {
+            // export { foo as bar } from './foo.js';
+            variable = variableDeclaration('const', [
+              variableDeclarator(
+                identifier(specifier.exported.name),
+                identifier(specifier.local.name)
+              ),
+            ]);
+          }
+
+          variableDeclarations.push(variable);
+        } else if (specifier.exported.type === 'StringLiteral') {
+          // export { foo as 'bar-bar' } from './foo.js';
+          // TODO: Handle StringLiteral exports
+        }
+      }
+    }
+    path.replaceWithMultiple(variableDeclarations);
+  }
+}
+
+function transformExports(
+  path: NodePath<ExportNamedDeclaration>,
+  module: Module
+) {
+  const declaration = path.node.declaration;
+  if (declaration) {
+    // export const foo = 'bar';
+    path.replaceWith(declaration);
+  } else {
+    const variableDeclarations: VariableDeclaration[] = [];
+    for (const specifier of path.node.specifiers) {
+      let variable: VariableDeclaration;
+
+      switch (specifier.type) {
+        case 'ExportDefaultSpecifier':
+          break;
+        case 'ExportNamespaceSpecifier':
+          break;
+        case 'ExportSpecifier':
+          switch (specifier.exported.type) {
+            case 'Identifier':
+              if (specifier.exported.name !== specifier.local.name) {
+                if (specifier.exported.name === 'default') {
+                  // export { foo as default };
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      getDefaultExportIdentifier(module.id),
+                      identifier(specifier.local.name)
+                    ),
+                  ]);
+                } else {
+                  // export { foo as bar };
+                  variable = variableDeclaration('const', [
+                    variableDeclarator(
+                      identifier(specifier.exported.name),
+                      identifier(specifier.local.name)
+                    ),
+                  ]);
+                }
+
+                variableDeclarations.push(variable);
+              }
+              break;
+            case 'StringLiteral':
+              // export { foo as 'bar-bar' };
+              // TODO: Handle StringLiteral exports
+              break;
+          }
+          break;
+      }
+    }
+    path.replaceWithMultiple(variableDeclarations);
+  }
+}
+
 export default function (
   path: NodePath<ExportNamedDeclaration>,
   module: Module
 ) {
-  const exportFromPath = path.node.source;
-
-  if (exportFromPath) {
+  if (path.node.source) {
     // export .. from ...
-    const dependency = module.dependencies.find(
-      (dependency) =>
-        dependency.path === join(dirname(module.path), exportFromPath.value)
-    )!;
-    const specifiers = path.node.specifiers;
-
-    if (
-      specifiers.length === 1 &&
-      specifiers[0].exported.type === 'Identifier' &&
-      specifiers[0].exported.name === 'default'
-    ) {
-      // export { default } from './foo.js';
-      const variable = variableDeclaration('const', [
-        variableDeclarator(
-          getDefaultExportIdentifier(module.id),
-          getDefaultExportIdentifier(dependency.id)
-        ),
-      ]);
-      path.replaceWith(variable);
-    } else {
-      const variableDeclarations: VariableDeclaration[] = [];
-      for (const specifier of specifiers) {
-        if (isExportDefaultSpecifier(specifier)) {
-          // export foo from './foo.js';
-          const variable = variableDeclaration('const', [
-            variableDeclarator(
-              identifier(specifier.exported.name),
-              getDefaultExportIdentifier(dependency.id)
-            ),
-          ]);
-          path.replaceWith(variable);
-        } else if (isExportNamespaceSpecifier(specifier)) {
-          // export * as foo from './foo.js';
-          // TODO
-        } else {
-          if (
-            specifier.exported.type === 'Identifier' &&
-            specifier.exported.name !== specifier.local.name
-          ) {
-            let variable: VariableDeclaration;
-
-            if (specifier.exported.name === 'default') {
-              // export { foo as default } from './foo.js';
-              variable = variableDeclaration('const', [
-                variableDeclarator(
-                  getDefaultExportIdentifier(module.id),
-                  identifier(specifier.local.name)
-                ),
-              ]);
-            } else if (specifier.local.name === 'default') {
-              // export { default as foo } from './foo.js';
-              variable = variableDeclaration('const', [
-                variableDeclarator(
-                  identifier(specifier.exported.name),
-                  getDefaultExportIdentifier(dependency.id)
-                ),
-              ]);
-            } else {
-              // export { foo as bar } from './foo.js';
-              variable = variableDeclaration('const', [
-                variableDeclarator(
-                  identifier(specifier.exported.name),
-                  identifier(specifier.local.name)
-                ),
-              ]);
-            }
-
-            variableDeclarations.push(variable);
-          } else if (specifier.exported.type === 'StringLiteral') {
-            // export { foo as 'bar-bar' } from './foo.js';
-            // TODO: Handle StringLiteral exports
-          }
-        }
-      }
-      path.replaceWithMultiple(variableDeclarations);
-    }
+    transformReExports(path, module);
   } else {
-    const declaration = path.node.declaration;
-    if (declaration) {
-      // export const foo = 'bar';
-      path.replaceWith(declaration);
-    } else {
-      const variableDeclarations: VariableDeclaration[] = [];
-      for (const specifier of path.node.specifiers) {
-        let variable: VariableDeclaration;
-
-        switch (specifier.type) {
-          case 'ExportDefaultSpecifier':
-            break;
-          case 'ExportNamespaceSpecifier':
-            break;
-          case 'ExportSpecifier':
-            switch (specifier.exported.type) {
-              case 'Identifier':
-                if (specifier.exported.name !== specifier.local.name) {
-                  if (specifier.exported.name === 'default') {
-                    // export { foo as default };
-                    variable = variableDeclaration('const', [
-                      variableDeclarator(
-                        getDefaultExportIdentifier(module.id),
-                        identifier(specifier.local.name)
-                      ),
-                    ]);
-                  } else {
-                    // export { foo as bar };
-                    variable = variableDeclaration('const', [
-                      variableDeclarator(
-                        identifier(specifier.exported.name),
-                        identifier(specifier.local.name)
-                      ),
-                    ]);
-                  }
-
-                  variableDeclarations.push(variable);
-                }
-                break;
-              case 'StringLiteral':
-                // export { foo as 'bar-bar' };
-                // TODO: Handle StringLiteral exports
-                break;
-            }
-            break;
-        }
-      }
-      path.replaceWithMultiple(variableDeclarations);
-    }
+    transformExports(path, module);
   }
 }
