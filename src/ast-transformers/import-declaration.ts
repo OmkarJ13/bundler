@@ -1,6 +1,7 @@
 import { NodePath } from '@babel/traverse';
 import {
   callExpression,
+  Identifier,
   identifier,
   ImportDeclaration,
   memberExpression,
@@ -9,6 +10,7 @@ import {
   stringLiteral,
   VariableDeclaration,
 } from '@babel/types';
+import traverse from '@babel/traverse';
 import { Module } from 'src/module';
 import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
 
@@ -51,25 +53,27 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
         break;
       case 'ImportSpecifier':
         switch (specifier.imported.type) {
-          case 'Identifier':
-            if (specifier.imported.name !== specifier.local.name) {
-              if (specifier.imported.name === 'default') {
-                // import { default as foo } from './foo.js';
-                variable = declareConst(
-                  specifier.local.name,
-                  identifier(getDefaultExportIdentifierName(dependency.id))
-                );
-              } else {
-                // import { foo as bar } from './foo.js';
-                variable = declareConst(
-                  specifier.local.name,
-                  identifier(specifier.imported.name)
-                );
-              }
+          case 'Identifier': {
+            const localName = specifier.local.name;
+            const originalName = specifier.imported.name;
+            const isAliased = localName !== originalName;
 
-              variableDeclarations.push(variable);
+            if (isAliased) {
+              traverse(module.ast, {
+                Identifier: (path: NodePath<Identifier>) => {
+                  const isImported =
+                    path.scope.getBinding(path.node.name)?.kind === 'module';
+                  if (path.node.name === localName && isImported) {
+                    path.node.name =
+                      originalName === 'default'
+                        ? getDefaultExportIdentifierName(dependency.id)
+                        : originalName;
+                  }
+                },
+              });
             }
             break;
+          }
           case 'StringLiteral':
             // import { 'bar-bar' as foo } from './foo.js';
             // TODO: Handle StringLiteral imports
