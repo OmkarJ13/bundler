@@ -6,7 +6,6 @@ import {
   isExportNamespaceSpecifier,
   VariableDeclaration,
 } from '@babel/types';
-import { dirname, join } from 'path';
 import { Module } from 'src/module';
 import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
 
@@ -14,12 +13,9 @@ function transformReExports(
   path: NodePath<ExportNamedDeclaration>,
   module: Module
 ) {
-  const exportFromPath = path.node.source!;
+  const exportFromPath = path.node.source!.value;
 
-  const dependency = module.dependencies.find(
-    (dependency) =>
-      dependency.path === join(dirname(module.path), exportFromPath.value)
-  )!;
+  const dependency = module.dependencies[exportFromPath];
   const specifiers = path.node.specifiers;
 
   if (

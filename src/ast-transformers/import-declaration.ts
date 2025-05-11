@@ -9,16 +9,12 @@ import {
   stringLiteral,
   VariableDeclaration,
 } from '@babel/types';
-import { dirname, join } from 'path';
 import { Module } from 'src/module';
 import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
 
 export default function (path: NodePath<ImportDeclaration>, module: Module) {
   const importPath = path.node.source.value;
-  const dependency: Module = module.dependencies.find(
-    (dependency) => dependency.path === join(dirname(module.path), importPath)
-  )!;
-
+  const dependency: Module = module.dependencies[importPath];
   const variableDeclarations: VariableDeclaration[] = [];
 
   for (const specifier of path.node.specifiers) {

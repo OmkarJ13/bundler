@@ -19,9 +19,9 @@ export class Bundle {
   private getBundle(module: Module): string {
     let code = '';
 
-    if (module.dependencies.length > 0) {
-      for (const childDependency of module.dependencies) {
-        code += this.getBundle(childDependency);
+    if (Object.entries(module.dependencies).length > 0) {
+      for (const [, childModule] of Object.entries(module.dependencies)) {
+        code += this.getBundle(childModule);
       }
     }
 

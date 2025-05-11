@@ -13,7 +13,7 @@ export class Module {
 
   ast: ParseResult<File>;
 
-  dependencies: Module[] = [];
+  dependencies: Record<string, Module> = {};
 
   namedExports: string[] = [];
 
@@ -32,14 +32,16 @@ export class Module {
   private analyseDependencies() {
     traverse(this.ast, {
       ImportDeclaration: (path) => {
-        this.dependencies.push(
-          this.getDependencyModule(path.node.source.value, this.directory)
+        this.dependencies[path.node.source.value] = this.getDependencyModule(
+          path.node.source.value,
+          this.directory
         );
       },
       ExportNamedDeclaration: (path) => {
         if (path.node.source) {
-          this.dependencies.push(
-            this.getDependencyModule(path.node.source.value, this.directory)
+          this.dependencies[path.node.source.value] = this.getDependencyModule(
+            path.node.source.value,
+            this.directory
           );
         }
       },
