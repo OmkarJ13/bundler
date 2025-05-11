@@ -23,14 +23,21 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
     let variable: VariableDeclaration;
 
     switch (specifier.type) {
-      case 'ImportDefaultSpecifier':
+      case 'ImportDefaultSpecifier': {
+        const localName = specifier.local.name;
         // import foo from './foo.js';
-        variable = declareConst(
-          specifier.local.name,
-          identifier(getDefaultExportIdentifierName(dependency.id))
-        );
-        variableDeclarations.push(variable);
+        traverse(module.ast, {
+          Identifier: (path: NodePath<Identifier>) => {
+            const isImported =
+              path.scope.getBinding(path.node.name)?.kind === 'module';
+
+            if (path.node.name === localName && isImported) {
+              path.node.name = getDefaultExportIdentifierName(dependency.id);
+            }
+          },
+        });
         break;
+      }
       case 'ImportNamespaceSpecifier':
         // import * as foo from './foo.js';
         variable = declareConst(
