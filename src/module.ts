@@ -1,5 +1,5 @@
 import { parse, ParseResult } from '@babel/parser';
-import { File } from '@babel/types';
+import { File, isExpression, isIdentifier } from '@babel/types';
 import traverse from '@babel/traverse';
 import fs from 'fs';
 import { dirname, join } from 'path';
@@ -17,6 +17,8 @@ export class Module {
 
   namedExports: string[] = [];
 
+  defaultExport: string | null = null;
+
   constructor(path: string, id = 0) {
     this.id = id;
     this.path = path;
@@ -26,7 +28,7 @@ export class Module {
     this.ast = parse(contents, { sourceType: 'module' });
 
     this.analyseDependencies();
-    this.analyseNamedExports();
+    this.analyzeExports();
   }
 
   private analyseDependencies() {
@@ -54,7 +56,7 @@ export class Module {
     return dependencyModule;
   }
 
-  private analyseNamedExports() {
+  private analyzeExports() {
     traverse(this.ast, {
       ExportNamedDeclaration: (path) => {
         const { declaration, specifiers } = path.node;
@@ -89,6 +91,20 @@ export class Module {
               break;
           }
         });
+      },
+      ExportDefaultDeclaration: (path) => {
+        const declaration = path.node.declaration;
+        if (isExpression(declaration) && isIdentifier(declaration)) {
+          this.defaultExport = declaration.name;
+        } else {
+          if (
+            (declaration.type === 'ClassDeclaration' ||
+              declaration.type === 'FunctionDeclaration') &&
+            declaration.id
+          ) {
+            this.defaultExport = declaration.id.name;
+          }
+        }
       },
     });
   }

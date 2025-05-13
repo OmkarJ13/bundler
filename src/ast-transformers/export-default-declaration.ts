@@ -5,6 +5,8 @@ import {
   ExportDefaultDeclaration,
   FunctionDeclaration,
   functionExpression,
+  isExpression,
+  isIdentifier,
 } from '@babel/types';
 import { Module } from 'src/module';
 import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
@@ -17,11 +19,6 @@ function transformClassDeclaration(
 
   if (declaration.id) {
     path.replaceWith(declaration);
-    const exportFunctionVariable = declareConst(
-      getDefaultExportIdentifierName(module.id),
-      declaration.id
-    );
-    path.insertAfter(exportFunctionVariable);
   } else {
     const expression = classExpression(
       null,
@@ -44,11 +41,6 @@ function transformFunctionDeclaration(
   const declaration = path.node.declaration as FunctionDeclaration;
   if (declaration.id) {
     path.replaceWith(declaration);
-    const exportFunctionVariable = declareConst(
-      getDefaultExportIdentifierName(module.id),
-      declaration.id
-    );
-    path.insertAfter(exportFunctionVariable);
   } else {
     const expression = functionExpression(
       null,
@@ -82,11 +74,13 @@ export default function (
       /* */
       break;
     default: {
-      const defaultExportVariable = declareConst(
-        getDefaultExportIdentifierName(module.id),
-        declaration
-      );
-      path.replaceWith(defaultExportVariable);
+      if (isExpression(declaration) && !isIdentifier(declaration)) {
+        const defaultExportVariable = declareConst(
+          getDefaultExportIdentifierName(module.id),
+          declaration
+        );
+        path.replaceWith(defaultExportVariable);
+      }
       break;
     }
   }

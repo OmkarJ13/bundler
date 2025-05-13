@@ -32,7 +32,9 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
               path.scope.getBinding(path.node.name)?.kind === 'module';
 
             if (path.node.name === localName && isImported) {
-              path.node.name = getDefaultExportIdentifierName(dependency.id);
+              path.node.name =
+                dependency.defaultExport ||
+                getDefaultExportIdentifierName(dependency.id);
             }
           },
         });
