@@ -70,9 +70,6 @@ function transformReExports(
           }
 
           variableDeclarations.push(variable);
-        } else if (specifier.exported.type === 'StringLiteral') {
-          // export { foo as 'bar-bar' } from './foo.js';
-          // TODO: Handle StringLiteral exports
         }
       }
     }
@@ -99,32 +96,27 @@ function transformExports(
         case 'ExportNamespaceSpecifier':
           break;
         case 'ExportSpecifier':
-          switch (specifier.exported.type) {
-            case 'Identifier':
-              if (specifier.exported.name !== specifier.local.name) {
-                if (specifier.exported.name === 'default') {
-                  // export { foo as default };
-                  variable = declareConst(
-                    getDefaultExportIdentifierName(module.id),
-                    identifier(specifier.local.name)
-                  );
-                } else {
-                  // export { foo as bar };
-                  variable = declareConst(
-                    specifier.exported.name,
-                    identifier(specifier.local.name)
-                  );
-                }
+          if (specifier.exported.type === 'Identifier') {
+            const isAliased = specifier.exported.name !== specifier.local.name;
 
-                variableDeclarations.push(variable);
+            if (isAliased) {
+              if (specifier.exported.name === 'default') {
+                // export { foo as default };
+                variable = declareConst(
+                  getDefaultExportIdentifierName(module.id),
+                  identifier(specifier.local.name)
+                );
+              } else {
+                // export { foo as bar };
+                variable = declareConst(
+                  specifier.exported.name,
+                  identifier(specifier.local.name)
+                );
               }
-              break;
-            case 'StringLiteral':
-              // export { foo as 'bar-bar' };
-              // TODO: Handle StringLiteral exports
-              break;
+
+              variableDeclarations.push(variable);
+            }
           }
-          break;
       }
     }
     path.replaceWithMultiple(variableDeclarations);

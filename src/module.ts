@@ -80,15 +80,11 @@ export class Module {
         }
 
         specifiers.forEach((spec) => {
-          switch (spec.exported.type) {
-            case 'Identifier':
-              if (spec.exported.name !== 'default') {
-                this.namedExports.push(spec.exported.name);
-              }
-              break;
-            case 'StringLiteral':
-              this.namedExports.push(spec.exported.value);
-              break;
+          if (
+            spec.exported.type === 'Identifier' &&
+            spec.exported.name !== 'default'
+          ) {
+            this.namedExports.push(spec.exported.name);
           }
         });
       },

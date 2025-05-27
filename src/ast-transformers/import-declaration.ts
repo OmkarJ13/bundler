@@ -61,34 +61,26 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
         variableDeclarations.push(variable);
         break;
       case 'ImportSpecifier':
-        switch (specifier.imported.type) {
-          case 'Identifier': {
-            const localName = specifier.local.name;
-            const originalName = specifier.imported.name;
-            const isAliased = localName !== originalName;
+        if (specifier.imported.type === 'Identifier') {
+          const localName = specifier.local.name;
+          const originalName = specifier.imported.name;
+          const isAliased = localName !== originalName;
 
-            if (isAliased) {
-              traverse(module.ast, {
-                Identifier: (path: NodePath<Identifier>) => {
-                  const isImported =
-                    path.scope.getBinding(path.node.name)?.kind === 'module';
-                  if (path.node.name === localName && isImported) {
-                    path.node.name =
-                      originalName === 'default'
-                        ? getDefaultExportIdentifierName(dependency.id)
-                        : originalName;
-                  }
-                },
-              });
-            }
-            break;
+          if (isAliased) {
+            traverse(module.ast, {
+              Identifier: (path: NodePath<Identifier>) => {
+                const isImported =
+                  path.scope.getBinding(path.node.name)?.kind === 'module';
+                if (path.node.name === localName && isImported) {
+                  path.node.name =
+                    originalName === 'default'
+                      ? getDefaultExportIdentifierName(dependency.id)
+                      : originalName;
+                }
+              },
+            });
           }
-          case 'StringLiteral':
-            // import { 'bar-bar' as foo } from './foo.js';
-            // TODO: Handle StringLiteral imports
-            break;
         }
-        break;
     }
   }
 
