@@ -48,11 +48,12 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
             memberExpression(identifier('Object'), identifier('freeze')),
             [
               objectExpression(
-                dependency.namedExports.map((namedExport) =>
-                  objectProperty(
-                    stringLiteral(namedExport),
-                    identifier(namedExport)
-                  )
+                Object.entries(dependency.namedExports).map(
+                  ([exportedName, { identifierName }]) =>
+                    objectProperty(
+                      stringLiteral(exportedName),
+                      identifier(identifierName)
+                    )
                 )
               ),
             ]
@@ -64,22 +65,21 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
         if (specifier.imported.type === 'Identifier') {
           const localName = specifier.local.name;
           const originalName = specifier.imported.name;
-          const isAliased = localName !== originalName;
 
-          if (isAliased) {
-            traverse(module.ast, {
-              Identifier: (path: NodePath<Identifier>) => {
-                const isImported =
-                  path.scope.getBinding(path.node.name)?.kind === 'module';
-                if (path.node.name === localName && isImported) {
-                  path.node.name =
-                    originalName === 'default'
-                      ? getDefaultExportIdentifierName(dependency.id)
-                      : originalName;
-                }
-              },
-            });
-          }
+          traverse(module.ast, {
+            Identifier: (path: NodePath<Identifier>) => {
+              const isImported =
+                path.scope.getBinding(path.node.name)?.kind === 'module';
+
+              if (path.node.name === localName && isImported) {
+                path.node.name =
+                  originalName === 'default'
+                    ? dependency.defaultExport ||
+                      getDefaultExportIdentifierName(dependency.id)
+                    : dependency.namedExports[originalName].identifierName;
+              }
+            },
+          });
         }
     }
   }

@@ -27,7 +27,7 @@ export class Bundle {
 
     traverse(module.ast, {
       ImportDeclaration: (path) => transformImports(path, module),
-      ExportNamedDeclaration: (path) => transformNamedExports(path, module),
+      ExportNamedDeclaration: (path) => transformNamedExports(path),
       ExportDefaultDeclaration: (path) => transformDefaultExports(path, module),
     });
 

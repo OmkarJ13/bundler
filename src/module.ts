@@ -15,7 +15,7 @@ export class Module {
 
   dependencies: Record<string, Module> = {};
 
-  namedExports: string[] = [];
+  namedExports: Record<string, { identifierName: string }> = {};
 
   defaultExport: string | null = null;
 
@@ -66,13 +66,17 @@ export class Module {
             case 'FunctionDeclaration':
             case 'ClassDeclaration':
               if (declaration.id) {
-                this.namedExports.push(declaration.id.name);
+                this.namedExports[declaration.id.name] = {
+                  identifierName: declaration.id.name,
+                };
               }
               break;
             case 'VariableDeclaration':
               declaration.declarations.forEach((declaration) => {
                 if (declaration.id.type === 'Identifier') {
-                  this.namedExports.push(declaration.id.name);
+                  this.namedExports[declaration.id.name] = {
+                    identifierName: declaration.id.name,
+                  };
                 }
               });
               break;
@@ -80,11 +84,47 @@ export class Module {
         }
 
         specifiers.forEach((spec) => {
-          if (
-            spec.exported.type === 'Identifier' &&
-            spec.exported.name !== 'default'
-          ) {
-            this.namedExports.push(spec.exported.name);
+          switch (spec.type) {
+            case 'ExportNamespaceSpecifier':
+              this.namedExports[spec.exported.name] = {
+                identifierName: spec.exported.name,
+              };
+              break;
+            case 'ExportSpecifier':
+              if (spec.exported.type === 'Identifier') {
+                const localName = spec.local.name;
+                const exportedName = spec.exported.name;
+                const isAliased = localName !== exportedName;
+
+                if (isAliased) {
+                  if (localName === 'default') {
+                    // When is aliased export and localName is default its a re-export so we know dependency is there
+                    const dependency =
+                      this.dependencies[path.node.source!.value];
+                    this.namedExports[exportedName] = {
+                      identifierName: dependency.defaultExport!,
+                    };
+                  } else if (exportedName === 'default') {
+                    this.defaultExport = spec.local.name;
+                  } else {
+                    this.namedExports[exportedName] = {
+                      identifierName: localName,
+                    };
+                  }
+                } else {
+                  if (exportedName === 'default') {
+                    // When its non-aliased default export, its a re-export so we know dependency is there
+                    const dependency =
+                      this.dependencies[path.node.source!.value];
+                    this.defaultExport = dependency.defaultExport!;
+                  } else {
+                    this.namedExports[exportedName] = {
+                      identifierName: exportedName,
+                    };
+                  }
+                }
+              }
+              break;
           }
         });
       },

@@ -1,136 +1,18 @@
 import { NodePath } from '@babel/traverse';
-import {
-  ExportNamedDeclaration,
-  identifier,
-  isExportDefaultSpecifier,
-  isExportNamespaceSpecifier,
-  VariableDeclaration,
-} from '@babel/types';
-import { Module } from 'src/module';
-import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
+import { ExportNamedDeclaration } from '@babel/types';
 
-function transformReExports(
-  path: NodePath<ExportNamedDeclaration>,
-  module: Module
-) {
-  const exportFromPath = path.node.source!.value;
-
-  const dependency = module.dependencies[exportFromPath];
-  const specifiers = path.node.specifiers;
-
-  if (
-    specifiers.length === 1 &&
-    specifiers[0].exported.type === 'Identifier' &&
-    specifiers[0].exported.name === 'default'
-  ) {
-    // export { default } from './foo.js';
-    const variable = declareConst(
-      getDefaultExportIdentifierName(module.id),
-      identifier(getDefaultExportIdentifierName(dependency.id))
-    );
-    path.replaceWith(variable);
-  } else {
-    const variableDeclarations: VariableDeclaration[] = [];
-    for (const specifier of specifiers) {
-      if (isExportDefaultSpecifier(specifier)) {
-        // export foo from './foo.js';
-        const variable = declareConst(
-          specifier.exported.name,
-          identifier(getDefaultExportIdentifierName(dependency.id))
-        );
-        path.replaceWith(variable);
-      } else if (isExportNamespaceSpecifier(specifier)) {
-        // export * as foo from './foo.js';
-        // TODO
-      } else {
-        if (
-          specifier.exported.type === 'Identifier' &&
-          specifier.exported.name !== specifier.local.name
-        ) {
-          let variable: VariableDeclaration;
-
-          if (specifier.exported.name === 'default') {
-            // export { foo as default } from './foo.js';
-            variable = declareConst(
-              getDefaultExportIdentifierName(module.id),
-              identifier(specifier.local.name)
-            );
-          } else if (specifier.local.name === 'default') {
-            // export { default as foo } from './foo.js';
-            variable = declareConst(
-              specifier.exported.name,
-              identifier(getDefaultExportIdentifierName(dependency.id))
-            );
-          } else {
-            // export { foo as bar } from './foo.js';
-            variable = declareConst(
-              specifier.exported.name,
-              identifier(specifier.local.name)
-            );
-          }
-
-          variableDeclarations.push(variable);
-        }
-      }
-    }
-    path.replaceWithMultiple(variableDeclarations);
-  }
-}
-
-function transformExports(
-  path: NodePath<ExportNamedDeclaration>,
-  module: Module
-) {
-  const declaration = path.node.declaration;
-  if (declaration) {
-    // export const foo = 'bar';
-    path.replaceWith(declaration);
-  } else {
-    const variableDeclarations: VariableDeclaration[] = [];
-    for (const specifier of path.node.specifiers) {
-      let variable: VariableDeclaration;
-
-      switch (specifier.type) {
-        case 'ExportDefaultSpecifier':
-          break;
-        case 'ExportNamespaceSpecifier':
-          break;
-        case 'ExportSpecifier':
-          if (specifier.exported.type === 'Identifier') {
-            const isAliased = specifier.exported.name !== specifier.local.name;
-
-            if (isAliased) {
-              if (specifier.exported.name === 'default') {
-                // export { foo as default };
-                variable = declareConst(
-                  getDefaultExportIdentifierName(module.id),
-                  identifier(specifier.local.name)
-                );
-              } else {
-                // export { foo as bar };
-                variable = declareConst(
-                  specifier.exported.name,
-                  identifier(specifier.local.name)
-                );
-              }
-
-              variableDeclarations.push(variable);
-            }
-          }
-      }
-    }
-    path.replaceWithMultiple(variableDeclarations);
-  }
-}
-
-export default function (
-  path: NodePath<ExportNamedDeclaration>,
-  module: Module
-) {
+export default function (path: NodePath<ExportNamedDeclaration>) {
   if (path.node.source) {
     // export .. from ...
-    transformReExports(path, module);
+    path.remove();
   } else {
-    transformExports(path, module);
+    const declaration = path.node.declaration;
+    if (declaration) {
+      // export const foo = 'bar';
+      path.replaceWith(declaration);
+    } else {
+      // export { foo, bar }
+      path.remove();
+    }
   }
 }

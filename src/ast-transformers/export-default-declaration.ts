@@ -70,9 +70,6 @@ export default function (
     case 'FunctionDeclaration':
       transformFunctionDeclaration(path, module);
       break;
-    case 'TSDeclareFunction':
-      /* */
-      break;
     default: {
       if (isExpression(declaration) && !isIdentifier(declaration)) {
         const defaultExportVariable = declareConst(
@@ -80,6 +77,8 @@ export default function (
           declaration
         );
         path.replaceWith(defaultExportVariable);
+      } else {
+        path.remove();
       }
       break;
     }
