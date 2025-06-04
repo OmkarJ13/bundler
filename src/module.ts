@@ -47,6 +47,12 @@ export class Module {
           );
         }
       },
+      ExportAllDeclaration: (path) => {
+        this.dependencies[path.node.source.value] = this.getDependencyModule(
+          path.node.source.value,
+          this.directory
+        );
+      },
     });
   }
 
@@ -141,6 +147,13 @@ export class Module {
             this.defaultExport = declaration.id.name;
           }
         }
+      },
+      ExportAllDeclaration: (path) => {
+        const dependency = this.dependencies[path.node.source.value];
+        this.namedExports = {
+          ...this.namedExports,
+          ...dependency.namedExports,
+        };
       },
     });
   }

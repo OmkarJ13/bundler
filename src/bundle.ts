@@ -5,6 +5,7 @@ import { Module } from './module.js';
 import transformImports from './ast-transformers/import-declaration.js';
 import transformNamedExports from './ast-transformers/export-named-declaration.js';
 import transformDefaultExports from './ast-transformers/export-default-declaration.js';
+import transformExportAll from './ast-transformers/export-all-declaration.js';
 
 export class Bundle {
   private entryPath: string;
@@ -29,6 +30,7 @@ export class Bundle {
       ImportDeclaration: (path) => transformImports(path, module),
       ExportNamedDeclaration: (path) => transformNamedExports(path),
       ExportDefaultDeclaration: (path) => transformDefaultExports(path, module),
+      ExportAllDeclaration: (path) => transformExportAll(path),
     });
 
     code += generate(module.ast).code + '\n';
