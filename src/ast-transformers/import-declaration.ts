@@ -21,10 +21,10 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
 
   for (const specifier of path.node.specifiers) {
     let variable: VariableDeclaration;
+    const localName = specifier.local.name;
 
     switch (specifier.type) {
       case 'ImportDefaultSpecifier': {
-        const localName = specifier.local.name;
         // import foo from './foo.js';
         traverse(module.ast, {
           Identifier: (path: NodePath<Identifier>) => {
@@ -43,7 +43,7 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
       case 'ImportNamespaceSpecifier':
         // import * as foo from './foo.js';
         variable = declareConst(
-          specifier.local.name,
+          localName,
           callExpression(
             memberExpression(identifier('Object'), identifier('freeze')),
             [
@@ -63,7 +63,6 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
         break;
       case 'ImportSpecifier':
         if (specifier.imported.type === 'Identifier') {
-          const localName = specifier.local.name;
           const originalName = specifier.imported.name;
 
           traverse(module.ast, {
