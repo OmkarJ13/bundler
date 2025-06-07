@@ -61,25 +61,27 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
         );
         variableDeclarations.push(variable);
         break;
-      case 'ImportSpecifier':
-        if (specifier.imported.type === 'Identifier') {
-          const originalName = specifier.imported.name;
+      case 'ImportSpecifier': {
+        const originalName =
+          specifier.imported.type === 'Identifier'
+            ? specifier.imported.name
+            : specifier.imported.value;
 
-          traverse(module.ast, {
-            Identifier: (path: NodePath<Identifier>) => {
-              const isImported =
-                path.scope.getBinding(path.node.name)?.kind === 'module';
+        traverse(module.ast, {
+          Identifier: (path: NodePath<Identifier>) => {
+            const isImported =
+              path.scope.getBinding(path.node.name)?.kind === 'module';
 
-              if (path.node.name === localName && isImported) {
-                path.node.name =
-                  originalName === 'default'
-                    ? dependency.defaultExport ||
-                      getDefaultExportIdentifierName(dependency.id)
-                    : dependency.namedExports[originalName].identifierName;
-              }
-            },
-          });
-        }
+            if (path.node.name === localName && isImported) {
+              path.node.name =
+                originalName === 'default'
+                  ? dependency.defaultExport ||
+                    getDefaultExportIdentifierName(dependency.id)
+                  : dependency.namedExports[originalName].identifierName;
+            }
+          },
+        });
+      }
     }
   }
 

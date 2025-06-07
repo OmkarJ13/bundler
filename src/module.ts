@@ -97,9 +97,12 @@ export class Module {
               };
               break;
             case 'ExportSpecifier':
-              if (spec.exported.type === 'Identifier') {
+              {
                 const localName = spec.local.name;
-                const exportedName = spec.exported.name;
+                const exportedName =
+                  spec.exported.type === 'Identifier'
+                    ? spec.exported.name
+                    : spec.exported.value;
                 const isAliased = localName !== exportedName;
 
                 if (isAliased) {
