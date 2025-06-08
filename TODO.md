@@ -62,18 +62,17 @@
 
 ## 🎯 Chapter 5: Developer Experience
 
-- [ ] Support for redemption.config.ts file to specify options
+- [ ] Support for config.ts file to specify options
 - [ ] Prettify CLI output and error reporting
 - [x] Unit tests
 
-## 🎯 Chapter 6: Beyond Advanced - Red Dead Redemption
+## 🎯 Chapter 6: Beyond Advanced
 
 - [ ] Minification logic from scratch
   - [ ] Too optimistic?
 - [ ] Circular dependency detection
 - [ ] Aggressive tree-shaking, for more than just imports and exports
 - [ ] Sourcemaps
-  - [ ] Again, what the fuck?
 - [ ] Plugin Hooks
 
 ---
