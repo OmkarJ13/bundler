@@ -1,8 +1,15 @@
 import { parse, ParseResult } from '@babel/parser';
-import { File, isExpression, isIdentifier } from '@babel/types';
+import {
+  File,
+  Identifier,
+  isExpression,
+  isIdentifier,
+  StringLiteral,
+} from '@babel/types';
 import traverse from '@babel/traverse';
 import fs from 'fs';
 import { dirname, join } from 'path';
+import { getStringLiteralExportNamespaceIdentifierName } from './utils';
 
 export class Module {
   id: number;
@@ -92,9 +99,22 @@ export class Module {
         specifiers.forEach((spec) => {
           switch (spec.type) {
             case 'ExportNamespaceSpecifier':
-              this.namedExports[spec.exported.name] = {
-                identifierName: spec.exported.name,
-              };
+              {
+                const dependency = this.dependencies[path.node.source!.value];
+                const exported = spec.exported as Identifier | StringLiteral;
+                const exportedName =
+                  exported.type === 'Identifier'
+                    ? exported.name
+                    : exported.value;
+                this.namedExports[exportedName] = {
+                  identifierName:
+                    exported.type === 'Identifier'
+                      ? exportedName
+                      : getStringLiteralExportNamespaceIdentifierName(
+                          dependency.id
+                        ),
+                };
+              }
               break;
             case 'ExportSpecifier':
               {

@@ -2,10 +2,12 @@ import { NodePath } from '@babel/traverse';
 import {
   callExpression,
   ExportNamedDeclaration,
+  Identifier,
   identifier,
   memberExpression,
   objectExpression,
   objectProperty,
+  StringLiteral,
   stringLiteral,
   VariableDeclaration,
 } from '@babel/types';
@@ -24,9 +26,12 @@ export default function (
 
     specifiers.forEach((spec) => {
       if (spec.type === 'ExportNamespaceSpecifier') {
+        const exported = spec.exported as Identifier | StringLiteral;
+        const exportedName =
+          exported.type === 'Identifier' ? exported.name : exported.value;
         variableDeclarations.push(
           declareConst(
-            spec.exported.name,
+            module.namedExports[exportedName].identifierName,
             callExpression(
               memberExpression(identifier('Object'), identifier('freeze')),
               [
