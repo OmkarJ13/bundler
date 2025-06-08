@@ -9,7 +9,7 @@ import {
   isIdentifier,
 } from '@babel/types';
 import { Module } from 'src/module';
-import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
+import { declareConst } from 'src/utils';
 
 function transformClassDeclaration(
   path: NodePath<ExportDefaultDeclaration>,
@@ -27,7 +27,7 @@ function transformClassDeclaration(
       declaration.decorators
     );
     const exportClassVariable = declareConst(
-      getDefaultExportIdentifierName(module.id),
+      module.exports.default.identifierName,
       expression
     );
     path.replaceWith(exportClassVariable);
@@ -50,7 +50,7 @@ function transformFunctionDeclaration(
       declaration.async
     );
     const exportFunctionVariable = declareConst(
-      getDefaultExportIdentifierName(module.id),
+      module.exports.default.identifierName,
       expression
     );
     path.replaceWith(exportFunctionVariable);
@@ -73,7 +73,7 @@ export default function (
     default: {
       if (isExpression(declaration) && !isIdentifier(declaration)) {
         const defaultExportVariable = declareConst(
-          getDefaultExportIdentifierName(module.id),
+          module.exports.default.identifierName,
           declaration
         );
         path.replaceWith(defaultExportVariable);

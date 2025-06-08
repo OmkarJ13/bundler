@@ -31,18 +31,19 @@ export default function (
           exported.type === 'Identifier' ? exported.name : exported.value;
         variableDeclarations.push(
           declareConst(
-            module.namedExports[exportedName].identifierName,
+            module.exports[exportedName].identifierName,
             callExpression(
               memberExpression(identifier('Object'), identifier('freeze')),
               [
                 objectExpression(
-                  Object.entries(dependency.namedExports).map(
-                    ([exportedName, { identifierName }]) =>
+                  Object.entries(dependency.exports)
+                    .filter(([exportedName]) => exportedName !== 'default')
+                    .map(([exportedName, { identifierName }]) =>
                       objectProperty(
                         stringLiteral(exportedName),
                         identifier(identifierName)
                       )
-                  )
+                    )
                 ),
               ]
             )

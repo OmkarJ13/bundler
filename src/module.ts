@@ -9,7 +9,10 @@ import {
 import traverse from '@babel/traverse';
 import fs from 'fs';
 import { dirname, join } from 'path';
-import { getStringLiteralExportNamespaceIdentifierName } from './utils';
+import {
+  getDefaultExportIdentifierName,
+  getStringLiteralExportNamespaceIdentifierName,
+} from './utils';
 
 export class Module {
   id: number;
@@ -22,9 +25,7 @@ export class Module {
 
   dependencies: Record<string, Module> = {};
 
-  namedExports: Record<string, { identifierName: string }> = {};
-
-  defaultExport: string | null = null;
+  exports: Record<string | 'default', { identifierName: string }> = {};
 
   constructor(path: string, id = 0) {
     this.id = id;
@@ -79,7 +80,7 @@ export class Module {
             case 'FunctionDeclaration':
             case 'ClassDeclaration':
               if (declaration.id) {
-                this.namedExports[declaration.id.name] = {
+                this.exports[declaration.id.name] = {
                   identifierName: declaration.id.name,
                 };
               }
@@ -87,7 +88,7 @@ export class Module {
             case 'VariableDeclaration':
               declaration.declarations.forEach((declaration) => {
                 if (declaration.id.type === 'Identifier') {
-                  this.namedExports[declaration.id.name] = {
+                  this.exports[declaration.id.name] = {
                     identifierName: declaration.id.name,
                   };
                 }
@@ -106,7 +107,7 @@ export class Module {
                   exported.type === 'Identifier'
                     ? exported.name
                     : exported.value;
-                this.namedExports[exportedName] = {
+                this.exports[exportedName] = {
                   identifierName:
                     exported.type === 'Identifier'
                       ? exportedName
@@ -130,13 +131,13 @@ export class Module {
                     // When is aliased export and localName is default its a re-export so we know dependency is there
                     const dependency =
                       this.dependencies[path.node.source!.value];
-                    this.namedExports[exportedName] = {
-                      identifierName: dependency.defaultExport!,
-                    };
+                    this.exports[exportedName] = dependency.exports.default;
                   } else if (exportedName === 'default') {
-                    this.defaultExport = spec.local.name;
+                    this.exports.default = {
+                      identifierName: spec.local.name,
+                    };
                   } else {
-                    this.namedExports[exportedName] = {
+                    this.exports[exportedName] = {
                       identifierName: localName,
                     };
                   }
@@ -145,9 +146,9 @@ export class Module {
                     // When its non-aliased default export, its a re-export so we know dependency is there
                     const dependency =
                       this.dependencies[path.node.source!.value];
-                    this.defaultExport = dependency.defaultExport!;
+                    this.exports.default = dependency.exports.default;
                   } else {
-                    this.namedExports[exportedName] = {
+                    this.exports[exportedName] = {
                       identifierName: exportedName,
                     };
                   }
@@ -159,23 +160,30 @@ export class Module {
       },
       ExportDefaultDeclaration: (path) => {
         const declaration = path.node.declaration;
-        if (isExpression(declaration) && isIdentifier(declaration)) {
-          this.defaultExport = declaration.name;
+        if (isExpression(declaration)) {
+          this.exports.default = {
+            identifierName: isIdentifier(declaration)
+              ? declaration.name
+              : getDefaultExportIdentifierName(this.id),
+          };
         } else {
           if (
-            (declaration.type === 'ClassDeclaration' ||
-              declaration.type === 'FunctionDeclaration') &&
-            declaration.id
+            declaration.type === 'ClassDeclaration' ||
+            declaration.type === 'FunctionDeclaration'
           ) {
-            this.defaultExport = declaration.id.name;
+            this.exports.default = {
+              identifierName: declaration.id
+                ? declaration.id.name
+                : getDefaultExportIdentifierName(this.id),
+            };
           }
         }
       },
       ExportAllDeclaration: (path) => {
         const dependency = this.dependencies[path.node.source.value];
-        this.namedExports = {
-          ...this.namedExports,
-          ...dependency.namedExports,
+        this.exports = {
+          ...this.exports,
+          ...dependency.exports,
         };
       },
     });

@@ -12,7 +12,7 @@ import {
 } from '@babel/types';
 import traverse from '@babel/traverse';
 import { Module } from 'src/module';
-import { declareConst, getDefaultExportIdentifierName } from 'src/utils';
+import { declareConst } from 'src/utils';
 
 export default function (path: NodePath<ImportDeclaration>, module: Module) {
   const importPath = path.node.source.value;
@@ -32,9 +32,7 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
               path.scope.getBinding(path.node.name)?.kind === 'module';
 
             if (path.node.name === localName && isImported) {
-              path.node.name =
-                dependency.defaultExport ||
-                getDefaultExportIdentifierName(dependency.id);
+              path.node.name = dependency.exports.default.identifierName;
             }
           },
         });
@@ -48,13 +46,14 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
             memberExpression(identifier('Object'), identifier('freeze')),
             [
               objectExpression(
-                Object.entries(dependency.namedExports).map(
-                  ([exportedName, { identifierName }]) =>
+                Object.entries(dependency.exports)
+                  .filter(([exportedName]) => exportedName !== 'default')
+                  .map(([exportedName, { identifierName }]) =>
                     objectProperty(
                       stringLiteral(exportedName),
                       identifier(identifierName)
                     )
-                )
+                  )
               ),
             ]
           )
@@ -75,9 +74,8 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
             if (path.node.name === localName && isImported) {
               path.node.name =
                 originalName === 'default'
-                  ? dependency.defaultExport ||
-                    getDefaultExportIdentifierName(dependency.id)
-                  : dependency.namedExports[originalName].identifierName;
+                  ? dependency.exports.default.identifierName
+                  : dependency.exports[originalName].identifierName;
             }
           },
         });
