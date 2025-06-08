@@ -5,15 +5,29 @@ import {
   VariableDeclaration,
   variableDeclarator,
 } from '@babel/types';
+import RESERVED_NAMES from './reserved-names';
+import { basename, extname } from 'path';
 
-export function getDefaultExportIdentifierName(moduleId: number): string {
-  return `__default_export_module_${moduleId}`;
-}
+const illegalCharacters = /[^\w$]/g;
 
-export function getStringLiteralExportNamespaceIdentifierName(
-  moduleId: number
-): string {
-  return `__string_literal_namespace_export_module_${moduleId}`;
+const startsWithDigit = (value: string): boolean => /\d/.test(value[0]);
+
+const needsEscape = (value: string) =>
+  startsWithDigit(value) || RESERVED_NAMES.has(value) || value === 'arguments';
+
+export function makeLegal(value: string): string {
+  const base = basename(value);
+  const extension = extname(value);
+
+  value = extension ? base.slice(0, -extension.length) : base;
+
+  value = value
+    .replace(/-(\w)/g, (_, letter) => letter.toUpperCase())
+    .replace(illegalCharacters, '_');
+
+  if (needsEscape(value)) value = `_${value}`;
+
+  return value || '_';
 }
 
 export function declareConst(

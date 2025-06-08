@@ -8,16 +8,15 @@ import {
 } from '@babel/types';
 import traverse from '@babel/traverse';
 import fs from 'fs';
-import { dirname, join } from 'path';
-import {
-  getDefaultExportIdentifierName,
-  getStringLiteralExportNamespaceIdentifierName,
-} from './utils';
+import { dirname, join, basename } from 'path';
+import { makeLegal } from './utils';
 
 export class Module {
   id: number;
 
   path: string;
+
+  fileName: string;
 
   directory: string;
 
@@ -31,6 +30,7 @@ export class Module {
     this.id = id;
     this.path = path;
     this.directory = dirname(this.path);
+    this.fileName = basename(this.path);
 
     const contents = fs.readFileSync(this.path, 'utf-8');
     this.ast = parse(contents, { sourceType: 'module' });
@@ -101,7 +101,6 @@ export class Module {
           switch (spec.type) {
             case 'ExportNamespaceSpecifier':
               {
-                const dependency = this.dependencies[path.node.source!.value];
                 const exported = spec.exported as Identifier | StringLiteral;
                 const exportedName =
                   exported.type === 'Identifier'
@@ -111,9 +110,7 @@ export class Module {
                   identifierName:
                     exported.type === 'Identifier'
                       ? exportedName
-                      : getStringLiteralExportNamespaceIdentifierName(
-                          dependency.id
-                        ),
+                      : makeLegal(this.fileName),
                 };
               }
               break;
@@ -164,7 +161,7 @@ export class Module {
           this.exports.default = {
             identifierName: isIdentifier(declaration)
               ? declaration.name
-              : getDefaultExportIdentifierName(this.id),
+              : makeLegal(this.fileName),
           };
         } else {
           if (
@@ -174,7 +171,7 @@ export class Module {
             this.exports.default = {
               identifierName: declaration.id
                 ? declaration.id.name
-                : getDefaultExportIdentifierName(this.id),
+                : makeLegal(this.fileName),
             };
           }
         }

@@ -1,3 +1,3 @@
-const __default_export_module_0 = class {};
-const foo = new __default_export_module_0();
-console.log(foo);
+const foo = class {};
+const stuff = new foo();
+console.log(stuff);

@@ -1,3 +1,3 @@
-import Foo from './foo.js';
-const foo = new Foo();
-console.log(foo);
+import Stuff from './foo.js';
+const stuff = new Stuff();
+console.log(stuff);
