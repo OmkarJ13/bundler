@@ -27,19 +27,19 @@
 
 ## 🎯 Chapter 3: Beyond The Basics
 
-- [ ] Scope Hoisting (flatten modules without IIFEs)
+- [x] Scope Hoisting (flatten modules without IIFEs)
   - [x] Read through how rollup does this
   - [x] Understand the benefits vs. runtime require approach
   - [x] Implement a basic version, which concatenates files in order and removes basic imports and replaces export declarations with declarations
-  - [ ] Advanced exports
+  - [x] Advanced exports
     - [x] Handle default exports
-    - [ ] Handle re-exports and module aggregations
-    - [ ] Handle aliased exports
-    - [ ] Handle string literal exports
-  - [ ] Advanced imports
+    - [x] Handle re-exports and module aggregations
+    - [x] Handle aliased exports
+    - [x] Handle string literal exports
+  - [x] Advanced imports
     - [x] Handle default imports
     - [x] Handle aliased imports
-    - [ ] Handle string literal imports
+    - [x] Handle string literal imports
 - [ ] Handle Variable Name Collisions
   - [ ] Do a basic POC of this, basically rollup adds $n for duplicate declarations
   - [ ] Handle edge case where if a variable name already contains the suffix that we added, it shouldn't collide again, re-run duplicate fixing logic until there are no more duplicates
@@ -64,7 +64,7 @@
 
 - [ ] Support for redemption.config.ts file to specify options
 - [ ] Prettify CLI output and error reporting
-- [ ] Unit tests
+- [x] Unit tests
 
 ## 🎯 Chapter 6: Beyond Advanced - Red Dead Redemption
 
