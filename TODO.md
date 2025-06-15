@@ -40,9 +40,9 @@
     - [x] Handle default imports
     - [x] Handle aliased imports
     - [x] Handle string literal imports
-- [ ] Handle Variable Name Collisions
-  - [ ] Do a basic POC of this, basically rollup adds $n for duplicate declarations
-  - [ ] Handle edge case where if a variable name already contains the suffix that we added, it shouldn't collide again, re-run duplicate fixing logic until there are no more duplicates
+- [x] Handle Variable Name Collisions
+  - [x] Do a basic POC of this, basically rollup adds $n for duplicate declarations
+  - [x] Handle edge case where if a variable name already contains the suffix that we added, it shouldn't collide again, re-run duplicate fixing logic until there are no more duplicates
 
 ## 🎯 Chapter 4: Advanced Bundler
 
