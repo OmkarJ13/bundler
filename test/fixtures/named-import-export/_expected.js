@@ -1,3 +1,7 @@
 const foo = 'foo';
 const bar = 'bar';
-console.log(foo, bar);
+const obj = {
+  a: 1,
+  b: 2
+};
+console.log(foo, bar, obj);

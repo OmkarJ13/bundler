@@ -94,6 +94,36 @@ export class Module {
                   this.exports[declaration.id.name] = {
                     identifierName: declaration.id.name,
                   };
+                } else if (declaration.id.type === 'ObjectPattern') {
+                  declaration.id.properties.forEach((property) => {
+                    if (property.type === 'ObjectProperty') {
+                      if (property.value.type === 'Identifier') {
+                        this.exports[property.value.name] = {
+                          identifierName: property.value.name,
+                        };
+                      }
+                    } else if (property.type === 'RestElement') {
+                      if (property.argument.type === 'Identifier') {
+                        this.exports[property.argument.name] = {
+                          identifierName: property.argument.name,
+                        };
+                      }
+                    }
+                  });
+                } else if (declaration.id.type === 'ArrayPattern') {
+                  declaration.id.elements.forEach((element) => {
+                    if (element && element.type === 'Identifier') {
+                      this.exports[element.name] = {
+                        identifierName: element.name,
+                      };
+                    } else if (element && element.type === 'RestElement') {
+                      if (element.argument.type === 'Identifier') {
+                        this.exports[element.argument.name] = {
+                          identifierName: element.argument.name,
+                        };
+                      }
+                    }
+                  });
                 }
               });
               break;
