@@ -100,6 +100,27 @@ export class Bundle {
         this.identifierNames.add(binding.identifier.name);
       }
     });
+
+    Object.keys(module.exports).forEach((exportedName) => {
+      if (module.exports[exportedName].isInternalIdentifier) {
+        const identifier = module.exports[exportedName].identifierName;
+
+        if (this.identifierNames.has(identifier)) {
+          let index = 1;
+          let identifierName = `${identifier}$${index}`;
+
+          while (this.identifierNames.has(identifierName)) {
+            identifierName = `${identifier}$${index++}`;
+          }
+
+          this.identifierNames.add(identifierName);
+
+          module.exports[exportedName].identifierName = identifierName;
+        } else {
+          this.identifierNames.add(identifier);
+        }
+      }
+    });
   }
 
   bundle(): string {

@@ -24,7 +24,10 @@ export class Module {
 
   dependencies: Record<string, Module> = {};
 
-  exports: Record<string | 'default', { identifierName: string }> = {};
+  exports: Record<
+    string | 'default',
+    { identifierName: string; isInternalIdentifier?: boolean }
+  > = {};
 
   constructor(path: string, id = 0) {
     this.id = id;
@@ -111,6 +114,7 @@ export class Module {
                     exported.type === 'Identifier'
                       ? exportedName
                       : makeLegal(this.fileName),
+                  isInternalIdentifier: exported.type !== 'Identifier',
                 };
               }
               break;
@@ -162,6 +166,7 @@ export class Module {
             identifierName: isIdentifier(declaration)
               ? declaration.name
               : makeLegal(this.fileName),
+            isInternalIdentifier: !isIdentifier(declaration),
           };
         } else {
           if (
@@ -172,6 +177,7 @@ export class Module {
               identifierName: declaration.id
                 ? declaration.id.name
                 : makeLegal(this.fileName),
+              isInternalIdentifier: !declaration.id,
             };
           }
         }
