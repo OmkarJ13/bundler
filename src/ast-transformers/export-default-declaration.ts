@@ -61,6 +61,10 @@ export default function (
   path: NodePath<ExportDefaultDeclaration>,
   module: Module
 ) {
+  if (module.isEntryModule) {
+    return;
+  }
+
   // export default foo;
   const declaration = path.node.declaration;
   switch (declaration.type) {

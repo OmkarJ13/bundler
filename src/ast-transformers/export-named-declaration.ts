@@ -18,6 +18,10 @@ export default function (
   path: NodePath<ExportNamedDeclaration>,
   module: Module
 ) {
+  if (module.isEntryModule) {
+    return;
+  }
+
   if (path.node.source) {
     // export .. from ...
     const dependency = module.dependencies[path.node.source.value];

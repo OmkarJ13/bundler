@@ -12,11 +12,11 @@ import { dirname, join, basename } from 'path';
 import { makeLegal } from './utils';
 
 export class Module {
-  id: number;
-
   path: string;
 
   fileName: string;
+
+  isEntryModule: boolean;
 
   directory: string;
 
@@ -29,9 +29,9 @@ export class Module {
     { identifierName: string; isInternalIdentifier?: boolean }
   > = {};
 
-  constructor(path: string, id = 0) {
-    this.id = id;
+  constructor(path: string, isEntryModule = false) {
     this.path = path;
+    this.isEntryModule = isEntryModule;
     this.directory = dirname(this.path);
     this.fileName = basename(this.path);
 
@@ -69,7 +69,7 @@ export class Module {
 
   private getDependencyModule(relativePath: string, directory: string): Module {
     const absolutePath = join(directory, relativePath);
-    const dependencyModule = new Module(absolutePath, this.id++);
+    const dependencyModule = new Module(absolutePath);
     return dependencyModule;
   }
 

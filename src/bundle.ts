@@ -44,7 +44,7 @@ export class Bundle {
       ImportDeclaration: (path) => transformImports(path, module),
       ExportNamedDeclaration: (path) => transformNamedExports(path, module),
       ExportDefaultDeclaration: (path) => transformDefaultExports(path, module),
-      ExportAllDeclaration: (path) => transformExportAll(path),
+      ExportAllDeclaration: (path) => transformExportAll(path, module),
     });
   }
 
@@ -124,7 +124,7 @@ export class Bundle {
   }
 
   bundle(): string {
-    const module = new Module(this.entryPath);
+    const module = new Module(this.entryPath, true);
 
     this.deconflictIdentifiers(module);
     this.transformAst(module);

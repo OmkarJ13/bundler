@@ -46,6 +46,9 @@
 
 ## 🎯 Chapter 4: Advanced Bundler
 
+- [ ] Figure out how to handle external libraries
+  - [ ] How the fuck does this work?
+  - [ ] Handle external libs, don't bundle them
 - [ ] TypeScript Support
   - [ ] Handle `.ts` file extensions
   - [ ] Transpile `.ts` to `.js` (basic — strip types)
@@ -54,11 +57,6 @@
 - [ ] Naive Tree Shaking (Remove unused imports/exports)
   - [ ] Modify dependency graph to identify unused dependencies
   - [ ] Modify bundling logic to exclude unused dependencies
-- [ ] Figure out how to handle external libraries
-  - [ ] How the fuck does this work?
-  - [ ] Handle external libs, don't bundle them
-- [ ] Code splitting - Multiple output chunks
-- [ ] Minification using an external library
 
 ## 🎯 Chapter 5: Developer Experience
 
@@ -68,8 +66,8 @@
 
 ## 🎯 Chapter 6: Beyond Advanced
 
-- [ ] Minification logic from scratch
-  - [ ] Too optimistic?
+- [ ] Minification
+- [ ] Code splitting - Multiple output chunks
 - [ ] Circular dependency detection
 - [ ] Aggressive tree-shaking, for more than just imports and exports
 - [ ] Sourcemaps
