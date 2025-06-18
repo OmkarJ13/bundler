@@ -60,12 +60,14 @@ export class Bundle {
     traverse(module.ast, {
       Identifier: (path) => {
         const binding = path.scope.getBinding(path.node.name);
+        const isNamespaceImport = path.parentPath.isImportNamespaceSpecifier();
         const isDeclaredWithinModule =
           binding &&
           (binding.kind === 'const' ||
             binding.kind === 'hoisted' ||
             binding.kind === 'let' ||
-            binding.kind === 'var');
+            binding.kind === 'var' ||
+            isNamespaceImport);
         if (isDeclaredWithinModule) {
           identiferBindings.add(binding);
         }
@@ -85,8 +87,8 @@ export class Bundle {
 
         Object.keys(module.exports).forEach((exportedName) => {
           if (
-            module.exports[exportedName].identifierName ===
-            binding.identifier.name
+            module.exports[exportedName].binding &&
+            module.exports[exportedName].binding === binding
           ) {
             module.exports[exportedName].identifierName = identifierName;
           }

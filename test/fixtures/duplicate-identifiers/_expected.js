@@ -1,5 +1,12 @@
 const foo = 'foo in side-effect.js';
 console.log('hey look this is a side effect', foo);
 const foo$1 = 'foo in foo.js';
-const foo$2 = 'foo in index.js';
-console.log(foo$2, foo$1);
+function hello() {
+  const foo$2 = 'foo';
+  console.log('hello', foo$2);
+}
+const foo$3 = Object.freeze({
+  "foo": foo$1,
+  "hello": hello
+});
+console.log(foo$3);

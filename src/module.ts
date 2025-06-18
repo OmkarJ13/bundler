@@ -6,7 +6,7 @@ import {
   isIdentifier,
   StringLiteral,
 } from '@babel/types';
-import traverse from '@babel/traverse';
+import traverse, { Binding } from '@babel/traverse';
 import fs from 'fs';
 import { dirname, join, basename } from 'path';
 import { makeLegal } from './utils';
@@ -26,7 +26,11 @@ export class Module {
 
   exports: Record<
     string | 'default',
-    { identifierName: string; isInternalIdentifier?: boolean }
+    {
+      identifierName: string;
+      isInternalIdentifier?: boolean;
+      binding?: Binding;
+    }
   > = {};
 
   constructor(path: string, isEntryModule = false) {
@@ -85,6 +89,7 @@ export class Module {
               if (declaration.id) {
                 this.exports[declaration.id.name] = {
                   identifierName: declaration.id.name,
+                  binding: path.scope.getBinding(declaration.id.name),
                 };
               }
               break;
@@ -93,6 +98,7 @@ export class Module {
                 if (declaration.id.type === 'Identifier') {
                   this.exports[declaration.id.name] = {
                     identifierName: declaration.id.name,
+                    binding: path.scope.getBinding(declaration.id.name),
                   };
                 } else if (declaration.id.type === 'ObjectPattern') {
                   declaration.id.properties.forEach((property) => {
@@ -100,12 +106,16 @@ export class Module {
                       if (property.value.type === 'Identifier') {
                         this.exports[property.value.name] = {
                           identifierName: property.value.name,
+                          binding: path.scope.getBinding(property.value.name),
                         };
                       }
                     } else if (property.type === 'RestElement') {
                       if (property.argument.type === 'Identifier') {
                         this.exports[property.argument.name] = {
                           identifierName: property.argument.name,
+                          binding: path.scope.getBinding(
+                            property.argument.name
+                          ),
                         };
                       }
                     }
@@ -115,11 +125,13 @@ export class Module {
                     if (element && element.type === 'Identifier') {
                       this.exports[element.name] = {
                         identifierName: element.name,
+                        binding: path.scope.getBinding(element.name),
                       };
                     } else if (element && element.type === 'RestElement') {
                       if (element.argument.type === 'Identifier') {
                         this.exports[element.argument.name] = {
                           identifierName: element.argument.name,
+                          binding: path.scope.getBinding(element.argument.name),
                         };
                       }
                     }
@@ -145,6 +157,7 @@ export class Module {
                       ? exportedName
                       : makeLegal(this.fileName),
                   isInternalIdentifier: exported.type !== 'Identifier',
+                  binding: path.scope.getBinding(exportedName),
                 };
               }
               break;
@@ -166,10 +179,12 @@ export class Module {
                   } else if (exportedName === 'default') {
                     this.exports.default = {
                       identifierName: spec.local.name,
+                      binding: path.scope.getBinding(spec.local.name),
                     };
                   } else {
                     this.exports[exportedName] = {
                       identifierName: localName,
+                      binding: path.scope.getBinding(localName),
                     };
                   }
                 } else {
@@ -181,6 +196,7 @@ export class Module {
                   } else {
                     this.exports[exportedName] = {
                       identifierName: exportedName,
+                      binding: path.scope.getBinding(exportedName),
                     };
                   }
                 }
@@ -197,6 +213,9 @@ export class Module {
               ? declaration.name
               : makeLegal(this.fileName),
             isInternalIdentifier: !isIdentifier(declaration),
+            binding: isIdentifier(declaration)
+              ? path.scope.getBinding(declaration.name)
+              : undefined,
           };
         } else {
           if (
@@ -208,6 +227,9 @@ export class Module {
                 ? declaration.id.name
                 : makeLegal(this.fileName),
               isInternalIdentifier: !declaration.id,
+              binding: declaration.id
+                ? path.scope.getBinding(declaration.id.name)
+                : undefined,
             };
           }
         }
