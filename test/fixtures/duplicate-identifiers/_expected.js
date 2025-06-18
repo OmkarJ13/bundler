@@ -9,4 +9,5 @@ const foo$3 = Object.freeze({
   "foo": foo$1,
   "hello": hello
 });
-console.log(foo$3);
+foo$3.hello();
+console.log(foo$3.foo);

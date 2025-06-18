@@ -1,2 +1,3 @@
 import * as foo from './foo.js';
-console.log(foo);
+foo.hello();
+console.log(foo.foo);
