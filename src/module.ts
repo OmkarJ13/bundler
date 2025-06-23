@@ -28,7 +28,6 @@ export class Module {
     string | 'default',
     {
       identifierName: string;
-      isInternalIdentifier?: boolean;
       binding?: Binding;
     }
   > = {};
@@ -156,7 +155,6 @@ export class Module {
                     exported.type === 'Identifier'
                       ? exportedName
                       : makeLegal(this.fileName),
-                  isInternalIdentifier: exported.type !== 'Identifier',
                   binding: path.scope.getBinding(exportedName),
                 };
               }
@@ -168,36 +166,41 @@ export class Module {
                   spec.exported.type === 'Identifier'
                     ? spec.exported.name
                     : spec.exported.value;
+                const dependency = path.node.source
+                  ? this.dependencies[path.node.source.value]
+                  : undefined;
                 const isAliased = localName !== exportedName;
 
                 if (isAliased) {
                   if (localName === 'default') {
                     // When is aliased export and localName is default its a re-export so we know dependency is there
-                    const dependency =
-                      this.dependencies[path.node.source!.value];
-                    this.exports[exportedName] = dependency.exports.default;
+                    this.exports[exportedName] = dependency!.exports.default;
                   } else if (exportedName === 'default') {
-                    this.exports.default = {
-                      identifierName: spec.local.name,
-                      binding: path.scope.getBinding(spec.local.name),
-                    };
+                    this.exports.default = dependency
+                      ? dependency.exports[localName]
+                      : {
+                          identifierName: localName,
+                          binding: path.scope.getBinding(localName),
+                        };
                   } else {
-                    this.exports[exportedName] = {
-                      identifierName: localName,
-                      binding: path.scope.getBinding(localName),
-                    };
+                    this.exports[exportedName] = dependency
+                      ? dependency.exports[localName]
+                      : {
+                          identifierName: localName,
+                          binding: path.scope.getBinding(localName),
+                        };
                   }
                 } else {
                   if (exportedName === 'default') {
                     // When its non-aliased default export, its a re-export so we know dependency is there
-                    const dependency =
-                      this.dependencies[path.node.source!.value];
-                    this.exports.default = dependency.exports.default;
+                    this.exports.default = dependency!.exports.default;
                   } else {
-                    this.exports[exportedName] = {
-                      identifierName: exportedName,
-                      binding: path.scope.getBinding(exportedName),
-                    };
+                    this.exports[exportedName] = dependency
+                      ? dependency.exports[exportedName]
+                      : {
+                          identifierName: exportedName,
+                          binding: path.scope.getBinding(exportedName),
+                        };
                   }
                 }
               }
@@ -212,7 +215,6 @@ export class Module {
             identifierName: isIdentifier(declaration)
               ? declaration.name
               : makeLegal(this.fileName),
-            isInternalIdentifier: !isIdentifier(declaration),
             binding: isIdentifier(declaration)
               ? path.scope.getBinding(declaration.name)
               : undefined,
@@ -226,7 +228,6 @@ export class Module {
               identifierName: declaration.id
                 ? declaration.id.name
                 : makeLegal(this.fileName),
-              isInternalIdentifier: !declaration.id,
               binding: declaration.id
                 ? path.scope.getBinding(declaration.id.name)
                 : undefined,

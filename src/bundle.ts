@@ -66,14 +66,8 @@ export class Bundle {
     return deconflictedIdentifierName;
   }
 
-  private deconflictIdentifiers(module: Module) {
-    if (Object.entries(module.dependencies).length > 0) {
-      for (const [, childModule] of Object.entries(module.dependencies)) {
-        this.deconflictIdentifiers(childModule);
-      }
-    }
-
-    const identiferBindings = new Set<Binding>();
+  private getModuleBindings(module: Module): Set<Binding> {
+    const moduleBindings = new Set<Binding>();
 
     traverse(module.ast, {
       Identifier: (path) => {
@@ -87,38 +81,57 @@ export class Bundle {
             binding.kind === 'var' ||
             isNamespaceImport);
         if (isDeclaredWithinModule) {
-          identiferBindings.add(binding);
+          moduleBindings.add(binding);
         }
       },
     });
 
-    identiferBindings.forEach((binding) => {
+    return moduleBindings;
+  }
+
+  private deconflictBindings(module: Module) {
+    const moduleBindings = this.getModuleBindings(module);
+    const exports = Object.values(module.exports);
+
+    moduleBindings.forEach((binding) => {
       const identifierName = this.getDeconflictedIdentifierName(
         binding.identifier.name
       );
-
-      Object.keys(module.exports).forEach((exportedName) => {
-        if (
-          module.exports[exportedName].binding &&
-          module.exports[exportedName].binding === binding
-        ) {
-          module.exports[exportedName].identifierName = identifierName;
-        }
-      });
 
       binding.identifier.name = identifierName;
       binding.referencePaths.forEach((path) => {
         (path.node as Identifier).name = identifierName;
       });
-    });
 
-    Object.keys(module.exports).forEach((exportedName) => {
-      if (module.exports[exportedName].isInternalIdentifier) {
-        const identifier = module.exports[exportedName].identifierName;
-        module.exports[exportedName].identifierName =
-          this.getDeconflictedIdentifierName(identifier);
+      const exported = exports.find(
+        (exported) => exported.binding && exported.binding === binding
+      );
+      if (exported) {
+        exported.identifierName = identifierName;
       }
     });
+  }
+
+  private deconflictAnonymousExports(module: Module) {
+    const exports = Object.values(module.exports);
+    exports
+      .filter((exported) => !exported.binding)
+      .forEach((exported) => {
+        exported.identifierName = this.getDeconflictedIdentifierName(
+          exported.identifierName
+        );
+      });
+  }
+
+  private deconflictIdentifiers(module: Module) {
+    if (Object.entries(module.dependencies).length > 0) {
+      for (const [, childModule] of Object.entries(module.dependencies)) {
+        this.deconflictIdentifiers(childModule);
+      }
+    }
+
+    this.deconflictBindings(module);
+    this.deconflictAnonymousExports(module);
   }
 
   bundle(): string {
