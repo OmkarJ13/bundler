@@ -1,3 +1,3 @@
-export default {
-  description: 'should be able to handle side effect imports',
-};
+import { defineTest } from '../../utils/test';
+
+export default defineTest('should be able to handle side effect imports');

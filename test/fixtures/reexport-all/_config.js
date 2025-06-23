@@ -1,3 +1,5 @@
-export default {
-  description: 'should be able to handle re-export all declarations',
-};
+import { defineTest } from '../../utils/test';
+
+export default defineTest(
+  'should be able to handle re-export all declarations'
+);

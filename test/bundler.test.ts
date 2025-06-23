@@ -15,13 +15,21 @@ describe('bundler', async () => {
     const configPath = path.join(fixturePath, '_config.js');
     const { default: config } = await import(configPath);
 
-    test(config.description, async () => {
-      const entryPath = path.join(fixturePath, 'index.js');
-      const bundle = new Bundle(entryPath);
-      const bundledCode = bundle.bundle();
-      await expect(bundledCode).toMatchFileSnapshot(
-        `fixtures/${name}/_expected.js`
-      );
-    });
+    test(
+      config.name,
+      {
+        only: config.only,
+        skip: config.skip,
+      },
+      async () => {
+        const entryPath = path.join(fixturePath, 'index.js');
+        const bundle = new Bundle(entryPath);
+        const bundledCode = bundle.bundle();
+        await expect(bundledCode).toMatchFileSnapshot(
+          `fixtures/${name}/_expected.js`,
+          fixturePath
+        );
+      }
+    );
   }
 });

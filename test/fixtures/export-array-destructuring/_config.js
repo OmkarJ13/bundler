@@ -1,3 +1,5 @@
-export default {
-  description: 'should be able to handle export array destructuring',
-};
+import { defineTest } from '../../utils/test';
+
+export default defineTest(
+  'should be able to handle export array destructuring'
+);

@@ -13,7 +13,7 @@ export class Bundle {
 
   private outputPath: string | undefined;
 
-  private identifierNames = new Set();
+  private identifierNames = new Set<string>();
 
   constructor(entryPath: string, outputPath?: string) {
     this.entryPath = entryPath;
