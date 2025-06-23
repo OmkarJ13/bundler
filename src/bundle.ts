@@ -48,6 +48,24 @@ export class Bundle {
     });
   }
 
+  private getDeconflictedIdentifierName(identifierName: string): string {
+    let deconflictedIdentifierName: string;
+
+    if (this.identifierNames.has(identifierName)) {
+      let index = 1;
+      deconflictedIdentifierName = `${identifierName}$${index}`;
+
+      while (this.identifierNames.has(deconflictedIdentifierName)) {
+        deconflictedIdentifierName = `${identifierName}$${index++}`;
+      }
+    } else {
+      deconflictedIdentifierName = identifierName;
+    }
+
+    this.identifierNames.add(deconflictedIdentifierName);
+    return deconflictedIdentifierName;
+  }
+
   private deconflictIdentifiers(module: Module) {
     if (Object.entries(module.dependencies).length > 0) {
       for (const [, childModule] of Object.entries(module.dependencies)) {
@@ -75,52 +93,30 @@ export class Bundle {
     });
 
     identiferBindings.forEach((binding) => {
-      if (this.identifierNames.has(binding.identifier.name)) {
-        let index = 1;
-        let identifierName = `${binding.identifier.name}$${index}`;
+      const identifierName = this.getDeconflictedIdentifierName(
+        binding.identifier.name
+      );
 
-        while (this.identifierNames.has(identifierName)) {
-          identifierName = `${binding.identifier.name}$${index++}`;
+      Object.keys(module.exports).forEach((exportedName) => {
+        if (
+          module.exports[exportedName].binding &&
+          module.exports[exportedName].binding === binding
+        ) {
+          module.exports[exportedName].identifierName = identifierName;
         }
+      });
 
-        this.identifierNames.add(identifierName);
-
-        Object.keys(module.exports).forEach((exportedName) => {
-          if (
-            module.exports[exportedName].binding &&
-            module.exports[exportedName].binding === binding
-          ) {
-            module.exports[exportedName].identifierName = identifierName;
-          }
-        });
-
-        binding.identifier.name = identifierName;
-        binding.referencePaths.forEach((path) => {
-          (path.node as Identifier).name = identifierName;
-        });
-      } else {
-        this.identifierNames.add(binding.identifier.name);
-      }
+      binding.identifier.name = identifierName;
+      binding.referencePaths.forEach((path) => {
+        (path.node as Identifier).name = identifierName;
+      });
     });
 
     Object.keys(module.exports).forEach((exportedName) => {
       if (module.exports[exportedName].isInternalIdentifier) {
         const identifier = module.exports[exportedName].identifierName;
-
-        if (this.identifierNames.has(identifier)) {
-          let index = 1;
-          let identifierName = `${identifier}$${index}`;
-
-          while (this.identifierNames.has(identifierName)) {
-            identifierName = `${identifier}$${index++}`;
-          }
-
-          this.identifierNames.add(identifierName);
-
-          module.exports[exportedName].identifierName = identifierName;
-        } else {
-          this.identifierNames.add(identifier);
-        }
+        module.exports[exportedName].identifierName =
+          this.getDeconflictedIdentifierName(identifier);
       }
     });
   }
