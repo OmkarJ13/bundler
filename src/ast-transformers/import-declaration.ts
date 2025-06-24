@@ -1,7 +1,6 @@
 import { NodePath } from '@babel/traverse';
 import {
   callExpression,
-  Identifier,
   identifier,
   ImportDeclaration,
   memberExpression,
@@ -27,8 +26,9 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
       case 'ImportDefaultSpecifier': {
         // import foo from './foo.js';
         referencePaths?.forEach((path) => {
-          (path.node as Identifier).name =
-            dependency.exports.default.identifierName;
+          if (path.node.type === 'Identifier') {
+            path.node.name = dependency.exports.default.identifierName;
+          }
         });
         break;
       }
@@ -61,10 +61,12 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
             : specifier.imported.value;
 
         referencePaths?.forEach((path) => {
-          (path.node as Identifier).name =
-            originalName === 'default'
-              ? dependency.exports.default.identifierName
-              : dependency.exports[originalName].identifierName;
+          if (path.node.type === 'Identifier') {
+            path.node.name =
+              originalName === 'default'
+                ? dependency.exports.default.identifierName
+                : dependency.exports[originalName].identifierName;
+          }
         });
       }
     }

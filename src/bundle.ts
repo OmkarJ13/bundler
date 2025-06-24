@@ -6,7 +6,6 @@ import transformImports from './ast-transformers/import-declaration.js';
 import transformNamedExports from './ast-transformers/export-named-declaration.js';
 import transformDefaultExports from './ast-transformers/export-default-declaration.js';
 import transformExportAll from './ast-transformers/export-all-declaration.js';
-import { Identifier } from '@babel/types';
 
 export class Bundle {
   private entryPath: string;
@@ -99,8 +98,20 @@ export class Bundle {
       );
 
       binding.identifier.name = identifierName;
+
       binding.referencePaths.forEach((path) => {
-        (path.node as Identifier).name = identifierName;
+        if (path.node.type === 'Identifier') {
+          path.node.name = identifierName;
+        }
+      });
+
+      binding.constantViolations.forEach((path) => {
+        if (
+          path.isAssignmentExpression() &&
+          path.node.left.type === 'Identifier'
+        ) {
+          path.node.left.name = identifierName;
+        }
       });
 
       const exported = exports.find(
