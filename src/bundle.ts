@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import traverse, { Binding } from '@babel/traverse';
+import traverse from '@babel/traverse';
 import { generate } from '@babel/generator';
 import { Module } from './module.js';
 import transformImports from './ast-transformers/import-declaration.js';
@@ -65,34 +65,10 @@ export class Bundle {
     return deconflictedIdentifierName;
   }
 
-  private getModuleBindings(module: Module): Set<Binding> {
-    const moduleBindings = new Set<Binding>();
-
-    traverse(module.ast, {
-      Identifier: (path) => {
-        const binding = path.scope.getBinding(path.node.name);
-        const isNamespaceImport = path.parentPath.isImportNamespaceSpecifier();
-        const isDeclaredWithinModule =
-          binding &&
-          (binding.kind === 'const' ||
-            binding.kind === 'hoisted' ||
-            binding.kind === 'let' ||
-            binding.kind === 'var' ||
-            isNamespaceImport);
-        if (isDeclaredWithinModule) {
-          moduleBindings.add(binding);
-        }
-      },
-    });
-
-    return moduleBindings;
-  }
-
   private deconflictBindings(module: Module) {
-    const moduleBindings = this.getModuleBindings(module);
     const exports = Object.values(module.exports);
 
-    moduleBindings.forEach((binding) => {
+    module.bindings.forEach((binding) => {
       const identifierName = this.getDeconflictedIdentifierName(
         binding.identifier.name
       );

@@ -25,12 +25,14 @@ export class Module {
   dependencies: Record<string, Module> = {};
 
   exports: Record<
-    string | 'default',
+    string,
     {
       identifierName: string;
       binding?: Binding;
     }
   > = {};
+
+  bindings: Set<Binding> = new Set();
 
   constructor(path: string, isEntryModule = false) {
     this.path = path;
@@ -43,6 +45,7 @@ export class Module {
 
     this.analyseDependencies();
     this.analyzeExports();
+    this.analyzeBindings();
   }
 
   private analyseDependencies() {
@@ -241,6 +244,31 @@ export class Module {
           ...this.exports,
           ...dependency.exports,
         };
+      },
+    });
+  }
+
+  private analyzeBindings() {
+    traverse(this.ast, {
+      Identifier: (path) => {
+        const binding = path.scope.getBinding(path.node.name);
+        const isDeclaredWithinModule =
+          binding &&
+          (binding.kind === 'const' ||
+            binding.kind === 'hoisted' ||
+            binding.kind === 'let' ||
+            binding.kind === 'var');
+
+        if (isDeclaredWithinModule) {
+          this.bindings.add(binding);
+        }
+      },
+      ImportNamespaceSpecifier: (path) => {
+        // Import namespace specifiers are converted to variables inside the module during bundling, so we need to include it as a binding
+        const binding = path.scope.getBinding(path.node.local.name);
+        if (binding) {
+          this.bindings.add(binding);
+        }
       },
     });
   }
