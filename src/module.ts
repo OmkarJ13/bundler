@@ -43,9 +43,21 @@ export class Module {
     const contents = fs.readFileSync(this.path, 'utf-8');
     this.ast = parse(contents, { sourceType: 'module' });
 
+    this.fixImportsWithoutExtension();
     this.analyseDependencies();
     this.analyzeExports();
     this.analyzeBindings();
+  }
+
+  private fixImportsWithoutExtension() {
+    traverse(this.ast, {
+      ImportDeclaration: (path) => {
+        const importPath = path.node.source.value;
+        if (!importPath.endsWith('.js')) {
+          path.node.source.value = importPath + '.js';
+        }
+      },
+    });
   }
 
   private analyseDependencies() {

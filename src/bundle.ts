@@ -6,6 +6,7 @@ import transformImports from './ast-transformers/import-declaration.js';
 import transformNamedExports from './ast-transformers/export-named-declaration.js';
 import transformDefaultExports from './ast-transformers/export-default-declaration.js';
 import transformExportAll from './ast-transformers/export-all-declaration.js';
+import { hasDependencies } from './utils.js';
 
 export class Bundle {
   private entryPath: string;
@@ -22,7 +23,7 @@ export class Bundle {
   private getBundle(module: Module): string {
     let code = '';
 
-    if (Object.entries(module.dependencies).length > 0) {
+    if (hasDependencies(module)) {
       for (const [, childModule] of Object.entries(module.dependencies)) {
         code += this.getBundle(childModule);
       }
@@ -33,7 +34,7 @@ export class Bundle {
   }
 
   private transformAst(module: Module): void {
-    if (Object.entries(module.dependencies).length > 0) {
+    if (hasDependencies(module)) {
       for (const [, childModule] of Object.entries(module.dependencies)) {
         this.transformAst(childModule);
       }
@@ -111,7 +112,7 @@ export class Bundle {
   }
 
   private deconflictIdentifiers(module: Module) {
-    if (Object.entries(module.dependencies).length > 0) {
+    if (hasDependencies(module)) {
       for (const [, childModule] of Object.entries(module.dependencies)) {
         this.deconflictIdentifiers(childModule);
       }

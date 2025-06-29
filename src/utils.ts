@@ -7,6 +7,7 @@ import {
 } from '@babel/types';
 import RESERVED_NAMES from './reserved-names';
 import { basename, extname } from 'path';
+import { Module } from './module';
 
 const illegalCharacters = /[^\w$]/g;
 
@@ -37,4 +38,8 @@ export function declareConst(
   return variableDeclaration('const', [
     variableDeclarator(identifier(name), expression),
   ]);
+}
+
+export function hasDependencies(module: Module): boolean {
+  return Object.entries(module.dependencies).length > 0;
 }
