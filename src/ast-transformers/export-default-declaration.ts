@@ -8,8 +8,8 @@ import {
   isExpression,
   isIdentifier,
 } from '@babel/types';
-import { Module } from 'src/module';
-import { declareConst } from 'src/utils';
+import { Module } from '../module';
+import { declareConst } from '../utils';
 
 function transformClassDeclaration(
   path: NodePath<ExportDefaultDeclaration>,

@@ -1,6 +1,6 @@
 import { NodePath } from '@babel/traverse';
 import { ExportAllDeclaration } from '@babel/types';
-import { Module } from 'src/module';
+import { Module } from '../module';
 
 export default function transformExportAll(
   path: NodePath<ExportAllDeclaration>,

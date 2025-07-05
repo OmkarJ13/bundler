@@ -7,6 +7,8 @@ import transformNamedExports from './ast-transformers/export-named-declaration.j
 import transformDefaultExports from './ast-transformers/export-default-declaration.js';
 import transformExportAll from './ast-transformers/export-all-declaration.js';
 import { hasDependencies } from './utils.js';
+import { ExternalModule } from './external-module.js';
+import { ImportDeclaration } from '@babel/types';
 
 export class Bundle {
   private entryPath: string;
@@ -14,6 +16,8 @@ export class Bundle {
   private outputPath: string | undefined;
 
   private identifierNames = new Set<string>();
+
+  externalImports: ImportDeclaration[] = [];
 
   constructor(entryPath: string, outputPath?: string) {
     this.entryPath = entryPath;
@@ -25,6 +29,10 @@ export class Bundle {
 
     if (hasDependencies(module)) {
       for (const [, childModule] of Object.entries(module.dependencies)) {
+        if (childModule instanceof ExternalModule) {
+          continue;
+        }
+
         code += this.getBundle(childModule);
       }
     }
@@ -36,13 +44,18 @@ export class Bundle {
   private transformAst(module: Module): void {
     if (hasDependencies(module)) {
       for (const [, childModule] of Object.entries(module.dependencies)) {
+        if (childModule instanceof ExternalModule) {
+          continue;
+        }
+
         this.transformAst(childModule);
       }
     }
 
     traverse(module.ast, {
-      ImportDeclaration: (path) => transformImports(path, module),
-      ExportNamedDeclaration: (path) => transformNamedExports(path, module),
+      ImportDeclaration: (path) => transformImports(this, path, module),
+      ExportNamedDeclaration: (path) =>
+        transformNamedExports(this, path, module),
       ExportDefaultDeclaration: (path) => transformDefaultExports(path, module),
       ExportAllDeclaration: (path) => transformExportAll(path, module),
     });
@@ -114,6 +127,10 @@ export class Bundle {
   private deconflictIdentifiers(module: Module) {
     if (hasDependencies(module)) {
       for (const [, childModule] of Object.entries(module.dependencies)) {
+        if (childModule instanceof ExternalModule) {
+          continue;
+        }
+
         this.deconflictIdentifiers(childModule);
       }
     }
@@ -122,13 +139,23 @@ export class Bundle {
     this.deconflictAnonymousExports(module);
   }
 
+  private getExternalImports(): string {
+    let code = '';
+    this.externalImports.forEach((externalImport) => {
+      code += generate(externalImport).code + '\n';
+    });
+
+    return code;
+  }
+
   bundle(): string {
     const module = new Module(this.entryPath, true);
 
     this.deconflictIdentifiers(module);
     this.transformAst(module);
 
-    const bundledCode = this.getBundle(module);
+    const externalImports = this.getExternalImports();
+    const bundledCode = externalImports + this.getBundle(module);
 
     if (this.outputPath) {
       fs.writeFileSync(this.outputPath, bundledCode);

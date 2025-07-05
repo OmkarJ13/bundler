@@ -7,9 +7,10 @@ import {
   StringLiteral,
 } from '@babel/types';
 import traverse, { Binding } from '@babel/traverse';
-import fs from 'fs';
+import fs, { existsSync } from 'fs';
 import { dirname, join, basename } from 'path';
 import { makeLegal } from './utils';
+import { ExternalModule } from './external-module';
 
 export class Module {
   path: string;
@@ -22,7 +23,7 @@ export class Module {
 
   ast: ParseResult<File>;
 
-  dependencies: Record<string, Module> = {};
+  dependencies: Record<string, Module | ExternalModule> = {};
 
   exports: Record<
     string,
@@ -53,8 +54,19 @@ export class Module {
     traverse(this.ast, {
       ImportDeclaration: (path) => {
         const importPath = path.node.source.value;
+
         if (!importPath.endsWith('.js')) {
-          path.node.source.value = importPath + '.js';
+          const updatedImportPath = importPath + '.js';
+          let exists = false;
+          if (updatedImportPath.startsWith('/')) {
+            exists = existsSync(updatedImportPath);
+          } else if (updatedImportPath.startsWith('.')) {
+            exists = existsSync(join(this.directory, updatedImportPath));
+          }
+
+          if (exists) {
+            path.node.source.value = updatedImportPath;
+          }
         }
       },
     });
@@ -64,37 +76,61 @@ export class Module {
     traverse(this.ast, {
       ImportDeclaration: (path) => {
         this.dependencies[path.node.source.value] = this.getDependencyModule(
-          path.node.source.value,
-          this.directory
+          path.node.source.value
         );
       },
       ExportNamedDeclaration: (path) => {
         if (path.node.source) {
           this.dependencies[path.node.source.value] = this.getDependencyModule(
-            path.node.source.value,
-            this.directory
+            path.node.source.value
           );
         }
       },
       ExportAllDeclaration: (path) => {
         this.dependencies[path.node.source.value] = this.getDependencyModule(
-          path.node.source.value,
-          this.directory
+          path.node.source.value
         );
       },
     });
   }
 
-  private getDependencyModule(relativePath: string, directory: string): Module {
-    const absolutePath = join(directory, relativePath);
-    const dependencyModule = new Module(absolutePath);
-    return dependencyModule;
+  private getDependencyModule(relativePath: string): Module | ExternalModule {
+    const isRelativePath =
+      relativePath.startsWith('/') || relativePath.startsWith('.');
+
+    if (isRelativePath) {
+      let exists = false;
+      if (relativePath.startsWith('/')) {
+        exists = existsSync(relativePath);
+      } else if (relativePath.startsWith('.')) {
+        exists = existsSync(join(this.directory, relativePath));
+      }
+
+      if (exists) {
+        const dependencyModule = new Module(join(this.directory, relativePath));
+        return dependencyModule;
+      } else {
+        throw new Error(
+          `Could not resolve module ${relativePath} from ${this.fileName}`
+        );
+      }
+    } else {
+      return new ExternalModule(relativePath);
+    }
   }
 
   private analyzeExports() {
     traverse(this.ast, {
       ExportNamedDeclaration: (path) => {
         const { declaration, specifiers } = path.node;
+
+        const dependency = path.node.source
+          ? this.dependencies[path.node.source.value]
+          : undefined;
+
+        if (dependency instanceof ExternalModule) {
+          return;
+        }
 
         if (declaration) {
           switch (declaration.type) {
@@ -181,9 +217,6 @@ export class Module {
                   spec.exported.type === 'Identifier'
                     ? spec.exported.name
                     : spec.exported.value;
-                const dependency = path.node.source
-                  ? this.dependencies[path.node.source.value]
-                  : undefined;
                 const isAliased = localName !== exportedName;
 
                 if (isAliased) {
@@ -252,6 +285,11 @@ export class Module {
       },
       ExportAllDeclaration: (path) => {
         const dependency = this.dependencies[path.node.source.value];
+
+        if (dependency instanceof ExternalModule) {
+          return;
+        }
+
         this.exports = {
           ...this.exports,
           ...dependency.exports,

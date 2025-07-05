@@ -11,10 +11,13 @@ import {
   stringLiteral,
   VariableDeclaration,
 } from '@babel/types';
-import { Module } from 'src/module';
-import { declareConst } from 'src/utils';
+import { ExternalModule } from '../external-module';
+import { Module } from '../module';
+import { declareConst } from '../utils';
+import { Bundle } from '../bundle';
 
 export default function (
+  _: Bundle,
   path: NodePath<ExportNamedDeclaration>,
   module: Module
 ) {
@@ -25,6 +28,10 @@ export default function (
   if (path.node.source) {
     // export .. from ...
     const dependency = module.dependencies[path.node.source.value];
+    if (dependency instanceof ExternalModule) {
+      return;
+    }
+
     const specifiers = path.node.specifiers;
     const variableDeclarations: VariableDeclaration[] = [];
 
