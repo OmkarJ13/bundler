@@ -239,10 +239,11 @@ export class Bundle {
     this.deconflictIdentifiers(module);
     this.transformAst(module);
 
-    const externalImports =
+    let externalImports =
       this.hoistExternalImports(module) +
-      this.convertExternalExportsToImports(module) +
-      '\n';
+      this.convertExternalExportsToImports(module);
+    externalImports += externalImports ? '\n' : '';
+
     const bundledCode = externalImports + this.getBundle(module);
 
     if (this.outputPath) {
