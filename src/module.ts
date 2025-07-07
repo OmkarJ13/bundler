@@ -1,12 +1,14 @@
 import { parse, ParseResult } from '@babel/parser';
 import {
+  ExportNamedDeclaration,
   File,
   Identifier,
+  ImportDeclaration,
   isExpression,
   isIdentifier,
   StringLiteral,
 } from '@babel/types';
-import traverse, { Binding } from '@babel/traverse';
+import traverse, { Binding, NodePath } from '@babel/traverse';
 import fs, { existsSync } from 'fs';
 import { dirname, join, basename } from 'path';
 import { makeLegal } from './utils';
@@ -33,6 +35,10 @@ export class Module {
     }
   > = {};
 
+  externalImports: NodePath<ImportDeclaration>[] = [];
+
+  externalExports: NodePath<ExportNamedDeclaration>[] = [];
+
   bindings: Set<Binding> = new Set();
 
   constructor(path: string, isEntryModule = false) {
@@ -48,6 +54,7 @@ export class Module {
     this.analyseDependencies();
     this.analyzeExports();
     this.analyzeBindings();
+    this.analyzeExternalImports();
   }
 
   private fixImportsWithoutExtension() {
@@ -127,10 +134,6 @@ export class Module {
         const dependency = path.node.source
           ? this.dependencies[path.node.source.value]
           : undefined;
-
-        if (dependency instanceof ExternalModule) {
-          return;
-        }
 
         if (declaration) {
           switch (declaration.type) {
@@ -222,17 +225,24 @@ export class Module {
                 if (isAliased) {
                   if (localName === 'default') {
                     // When is aliased export and localName is default its a re-export so we know dependency is there
-                    this.exports[exportedName] = dependency!.exports.default;
+                    this.exports[exportedName] =
+                      dependency instanceof ExternalModule
+                        ? { identifierName: makeLegal(exportedName) }
+                        : dependency!.exports.default;
                   } else if (exportedName === 'default') {
                     this.exports.default = dependency
-                      ? dependency.exports[localName]
+                      ? dependency instanceof ExternalModule
+                        ? { identifierName: makeLegal(exportedName) }
+                        : dependency.exports[localName]
                       : {
                           identifierName: localName,
                           binding: path.scope.getBinding(localName),
                         };
                   } else {
                     this.exports[exportedName] = dependency
-                      ? dependency.exports[localName]
+                      ? dependency instanceof ExternalModule
+                        ? { identifierName: makeLegal(exportedName) }
+                        : dependency.exports[localName]
                       : {
                           identifierName: localName,
                           binding: path.scope.getBinding(localName),
@@ -241,10 +251,15 @@ export class Module {
                 } else {
                   if (exportedName === 'default') {
                     // When its non-aliased default export, its a re-export so we know dependency is there
-                    this.exports.default = dependency!.exports.default;
+                    this.exports.default =
+                      dependency instanceof ExternalModule
+                        ? { identifierName: exportedName }
+                        : dependency!.exports.default;
                   } else {
                     this.exports[exportedName] = dependency
-                      ? dependency.exports[exportedName]
+                      ? dependency instanceof ExternalModule
+                        ? { identifierName: exportedName }
+                        : dependency.exports[exportedName]
                       : {
                           identifierName: exportedName,
                           binding: path.scope.getBinding(exportedName),
@@ -318,6 +333,27 @@ export class Module {
         const binding = path.scope.getBinding(path.node.local.name);
         if (binding) {
           this.bindings.add(binding);
+        }
+      },
+    });
+  }
+
+  private analyzeExternalImports() {
+    traverse(this.ast, {
+      ImportDeclaration: (path) => {
+        const importPath = path.node.source.value;
+        const dependency = this.dependencies[importPath];
+
+        if (dependency instanceof ExternalModule) {
+          this.externalImports.push(path);
+        }
+      },
+      ExportNamedDeclaration: (path) => {
+        if (path.node.source) {
+          const dependency = this.dependencies[path.node.source.value];
+          if (dependency instanceof ExternalModule) {
+            this.externalExports.push(path);
+          }
         }
       },
     });

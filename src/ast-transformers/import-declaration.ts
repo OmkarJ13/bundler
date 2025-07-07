@@ -12,19 +12,12 @@ import {
 import { ExternalModule } from '../external-module';
 import { Module } from '../module';
 import { declareConst } from '../utils';
-import { Bundle } from '../bundle';
 
-export default function (
-  bundle: Bundle,
-  path: NodePath<ImportDeclaration>,
-  module: Module
-) {
+export default function (path: NodePath<ImportDeclaration>, module: Module) {
   const importPath = path.node.source.value;
   const dependency: Module | ExternalModule = module.dependencies[importPath];
 
   if (dependency instanceof ExternalModule) {
-    bundle.externalImports.push(path.node);
-    path.remove();
     return;
   }
 

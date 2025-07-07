@@ -14,10 +14,8 @@ import {
 import { ExternalModule } from '../external-module';
 import { Module } from '../module';
 import { declareConst } from '../utils';
-import { Bundle } from '../bundle';
 
 export default function (
-  _: Bundle,
   path: NodePath<ExportNamedDeclaration>,
   module: Module
 ) {
