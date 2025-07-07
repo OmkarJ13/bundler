@@ -169,11 +169,6 @@ export class Bundle {
   private hoistExternalImports(module: Module): string {
     let code = '';
 
-    for (const importDeclaration of module.externalImports) {
-      code += generate(importDeclaration.node).code + '\n';
-      importDeclaration.remove();
-    }
-
     if (hasDependencies(module)) {
       for (const [, childModule] of Object.entries(module.dependencies)) {
         if (childModule instanceof ExternalModule) {
@@ -182,6 +177,11 @@ export class Bundle {
 
         code += this.hoistExternalImports(childModule);
       }
+    }
+
+    for (const importDeclaration of module.externalImports) {
+      code += generate(importDeclaration.node).code + '\n';
+      importDeclaration.remove();
     }
 
     return code;
