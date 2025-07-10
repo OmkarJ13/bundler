@@ -1,5 +1,6 @@
 import { parse, ParseResult } from '@babel/parser';
 import {
+  ExportAllDeclaration,
   ExportNamedDeclaration,
   File,
   Identifier,
@@ -27,6 +28,8 @@ export class Module {
 
   dependencies: Record<string, Module | ExternalModule> = {};
 
+  dependents: Set<Module> = new Set();
+
   exports: Record<
     string,
     {
@@ -38,6 +41,8 @@ export class Module {
   externalImports: NodePath<ImportDeclaration>[] = [];
 
   externalExports: NodePath<ExportNamedDeclaration>[] = [];
+
+  externalExportAlls: NodePath<ExportAllDeclaration>[] = [];
 
   bindings: Set<Binding> = new Set();
 
@@ -115,6 +120,7 @@ export class Module {
 
       if (exists) {
         const dependencyModule = new Module(join(this.directory, relativePath));
+        dependencyModule.dependents.add(this);
         return dependencyModule;
       } else {
         throw new Error(
@@ -215,7 +221,9 @@ export class Module {
               break;
             case 'ExportSpecifier':
               {
-                const localName = spec.local.name;
+                const local = spec.local as Identifier | StringLiteral;
+                const localName =
+                  local.type === 'Identifier' ? local.name : local.value;
                 const exportedName =
                   spec.exported.type === 'Identifier'
                     ? spec.exported.name
@@ -232,7 +240,7 @@ export class Module {
                   } else if (exportedName === 'default') {
                     this.exports.default = dependency
                       ? dependency instanceof ExternalModule
-                        ? { identifierName: makeLegal(exportedName) }
+                        ? { identifierName: makeLegal(localName) }
                         : dependency.exports[localName]
                       : {
                           identifierName: localName,
@@ -253,7 +261,7 @@ export class Module {
                     // When its non-aliased default export, its a re-export so we know dependency is there
                     this.exports.default =
                       dependency instanceof ExternalModule
-                        ? { identifierName: exportedName }
+                        ? { identifierName: makeLegal(this.fileName) }
                         : dependency!.exports.default;
                   } else {
                     this.exports[exportedName] = dependency
@@ -354,6 +362,12 @@ export class Module {
           if (dependency instanceof ExternalModule) {
             this.externalExports.push(path);
           }
+        }
+      },
+      ExportAllDeclaration: (path) => {
+        const dependency = this.dependencies[path.node.source.value];
+        if (dependency instanceof ExternalModule) {
+          this.externalExportAlls.push(path);
         }
       },
     });

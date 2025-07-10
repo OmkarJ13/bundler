@@ -9,10 +9,17 @@ import transformExportAll from './ast-transformers/export-all-declaration.js';
 import { hasDependencies } from './utils.js';
 import { ExternalModule } from './external-module.js';
 import {
+  Identifier,
   identifier,
   importDeclaration,
+  importDefaultSpecifier,
+  ImportDefaultSpecifier,
+  ImportNamespaceSpecifier,
+  importNamespaceSpecifier,
   ImportSpecifier,
   importSpecifier,
+  stringLiteral,
+  StringLiteral,
 } from '@babel/types';
 
 export class Bundle {
@@ -208,16 +215,38 @@ export class Bundle {
       const importSpecifiers = [];
 
       for (const specifier of externalExport.node.specifiers) {
-        let importedSpecifier: ImportSpecifier;
+        let importedSpecifier:
+          | ImportSpecifier
+          | ImportNamespaceSpecifier
+          | ImportDefaultSpecifier;
 
         if (specifier.type === 'ExportSpecifier') {
+          const local = specifier.local as Identifier | StringLiteral;
+          const localName =
+            local.type === 'Identifier' ? local.name : local.value;
           const exportedName =
             specifier.exported.type === 'Identifier'
               ? specifier.exported.name
               : specifier.exported.value;
-          importedSpecifier = importSpecifier(
-            identifier(module.exports[exportedName].identifierName),
-            specifier.local
+
+          if (localName === 'default') {
+            importedSpecifier = importDefaultSpecifier(
+              identifier(module.exports[exportedName].identifierName)
+            );
+          } else {
+            importedSpecifier = importSpecifier(
+              identifier(module.exports[exportedName].identifierName),
+              local.type === 'Identifier'
+                ? identifier(localName)
+                : stringLiteral(localName)
+            );
+          }
+
+          importSpecifiers.push(importedSpecifier);
+        } else if (specifier.type === 'ExportNamespaceSpecifier') {
+          const exportedName = specifier.exported.name;
+          importedSpecifier = importNamespaceSpecifier(
+            identifier(exportedName)
           );
           importSpecifiers.push(importedSpecifier);
         }
@@ -230,6 +259,72 @@ export class Bundle {
       externalExport.remove();
     }
 
+    if (module.externalExportAlls.length > 0) {
+      const importSpecifiers: ImportSpecifier[] = [];
+      for (const dependent of module.dependents) {
+        traverse(dependent.ast, {
+          ImportDeclaration: (path) => {
+            const dependency = dependent.dependencies[path.node.source.value];
+            if (dependency instanceof ExternalModule) {
+              return;
+            }
+
+            if (dependency.fileName === module.fileName) {
+              const namedSpecifiers = path.node.specifiers.filter(
+                (specifier) => specifier.type === 'ImportSpecifier'
+              );
+
+              for (const specifier of namedSpecifiers) {
+                const importedName =
+                  specifier.imported.type === 'Identifier'
+                    ? specifier.imported.name
+                    : specifier.imported.value;
+                if (!module.exports[importedName]) {
+                  importSpecifiers.push(specifier);
+                }
+              }
+            }
+          },
+        });
+
+        if (importSpecifiers.length > 0) {
+          const [firstExternalExportAll, ...restExternalExportAlls] =
+            module.externalExportAlls;
+          code +=
+            generate(
+              importDeclaration(
+                importSpecifiers,
+                firstExternalExportAll.node.source
+              )
+            ).code + '\n';
+
+          if (restExternalExportAlls.length > 0) {
+            importSpecifiers.forEach((importSpecifier) => {
+              console.warn(
+                `Ambigious external export resolution: ${module.fileName} re-exports ${importSpecifier.imported.type === 'Identifier' ? importSpecifier.imported.name : importSpecifier.imported.value} from one of the external modules ${module.externalExportAlls.map((externalExportAll) => externalExportAll.node.source.value).join(' and ')}, guessing ${firstExternalExportAll.node.source.value}`
+              );
+            });
+
+            restExternalExportAlls.forEach((externalExportAll) => {
+              code +=
+                generate(importDeclaration([], externalExportAll.node.source))
+                  .code + '\n';
+            });
+          }
+        } else {
+          module.externalExportAlls.forEach((externalExportAll) => {
+            code +=
+              generate(importDeclaration([], externalExportAll.node.source))
+                .code + '\n';
+          });
+        }
+      }
+
+      for (const externalExportAll of module.externalExportAlls) {
+        externalExportAll.remove();
+      }
+    }
+
     return code;
   }
 
@@ -237,11 +332,13 @@ export class Bundle {
     const module = new Module(this.entryPath, true);
 
     this.deconflictIdentifiers(module);
-    this.transformAst(module);
 
     let externalImports =
       this.hoistExternalImports(module) +
       this.convertExternalExportsToImports(module);
+
+    this.transformAst(module);
+
     externalImports += externalImports ? '\n' : '';
 
     const bundledCode = externalImports + this.getBundle(module);

@@ -68,10 +68,9 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
 
         referencePaths?.forEach((path) => {
           if (path.node.type === 'Identifier') {
-            path.node.name =
-              originalName === 'default'
-                ? dependency.exports.default.identifierName
-                : dependency.exports[originalName].identifierName;
+            if (dependency.exports[originalName]) {
+              path.node.name = dependency.exports[originalName].identifierName;
+            }
           }
         });
       }
