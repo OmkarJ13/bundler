@@ -46,9 +46,9 @@
 
 ## 🎯 Chapter 4: Advanced Bundler
 
-- [ ] Figure out how to handle external libraries
-  - [ ] How the fuck does this work?
-  - [ ] Handle external libs, don't bundle them
+- [x] Figure out how to handle external libraries
+  - [x] How the fuck does this work?
+  - [x] Handle external libs, don't bundle them
 - [ ] TypeScript Support
   - [ ] Handle `.ts` file extensions
   - [ ] Transpile `.ts` to `.js` (basic — strip types)
