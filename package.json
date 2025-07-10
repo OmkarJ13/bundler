@@ -36,25 +36,25 @@
   },
   "homepage": "https://github.com/OmkarJ13/Redemption#readme",
   "devDependencies": {
-    "@babel/generator": "^7.27.0",
-    "@babel/parser": "^7.27.0",
-    "@babel/traverse": "^7.27.0",
-    "@babel/types": "^7.27.0",
-    "@eslint/js": "^9.24.0",
+    "@babel/generator": "^7.28.0",
+    "@babel/parser": "^7.28.0",
+    "@babel/traverse": "^7.28.0",
+    "@babel/types": "^7.28.0",
+    "@eslint/js": "^9.30.1",
     "@types/babel__generator": "^7.27.0",
     "@types/babel__traverse": "^7.20.7",
-    "@types/node": "^22.14.0",
+    "@types/node": "^24.0.12",
     "@types/yargs": "^17.0.33",
-    "eslint": "^9.24.0",
-    "globals": "^16.0.0",
+    "eslint": "^9.30.1",
+    "globals": "^16.3.0",
     "husky": "^9.1.7",
-    "lint-staged": "^15.5.0",
-    "prettier": "3.5.3",
+    "lint-staged": "^16.1.2",
+    "prettier": "3.6.2",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.29.0",
-    "vitest": "^3.1.2"
+    "typescript-eslint": "^8.36.0",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
-    "yargs": "^17.7.2"
+    "yargs": "^18.0.0"
   }
 }
