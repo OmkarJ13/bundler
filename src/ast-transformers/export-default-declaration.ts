@@ -75,7 +75,11 @@ export default function (
       transformFunctionDeclaration(path, module);
       break;
     default: {
-      if (isExpression(declaration) && !isIdentifier(declaration)) {
+      if (
+        (isExpression(declaration) && !isIdentifier(declaration)) ||
+        (isIdentifier(declaration) &&
+          module.exports.default.identifierName !== declaration.name)
+      ) {
         const defaultExportVariable = declareConst(
           module.exports.default.identifierName,
           declaration

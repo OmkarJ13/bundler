@@ -282,14 +282,25 @@ export class Module {
       ExportDefaultDeclaration: (path) => {
         const declaration = path.node.declaration;
         if (isExpression(declaration)) {
-          this.exports.default = {
-            identifierName: isIdentifier(declaration)
-              ? declaration.name
-              : makeLegal(this.fileName),
-            binding: isIdentifier(declaration)
-              ? path.scope.getBinding(declaration.name)
-              : undefined,
-          };
+          if (isIdentifier(declaration)) {
+            const binding = path.scope.getBinding(declaration.name);
+            const isReassigned = (binding?.constantViolations.length || 0) > 0;
+
+            if (isReassigned) {
+              this.exports.default = {
+                identifierName: makeLegal(this.fileName),
+              };
+            } else {
+              this.exports.default = {
+                identifierName: declaration.name,
+                binding,
+              };
+            }
+          } else {
+            this.exports.default = {
+              identifierName: makeLegal(this.fileName),
+            };
+          }
         } else {
           if (
             declaration.type === 'ClassDeclaration' ||
