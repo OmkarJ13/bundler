@@ -274,6 +274,10 @@ export class Bundle {
                 (specifier) => specifier.type === 'ImportSpecifier'
               );
 
+              const namespaceSpecifiers = path.node.specifiers.filter(
+                (specifier) => specifier.type === 'ImportNamespaceSpecifier'
+              );
+
               for (const specifier of namedSpecifiers) {
                 const importedName =
                   specifier.imported.type === 'Identifier'
@@ -281,7 +285,53 @@ export class Bundle {
                     : specifier.imported.value;
                 if (!module.exports[importedName]) {
                   importSpecifiers.push(specifier);
+                  module.exports[importedName] = {
+                    identifierName: importedName,
+                  };
                 }
+              }
+
+              for (const specifier of namespaceSpecifiers) {
+                const binding = path.scope.getBinding(specifier.local.name);
+                binding?.referencePaths.forEach((referencePath) => {
+                  const parentNode = referencePath.parentPath?.node;
+                  if (parentNode?.type === 'MemberExpression') {
+                    const property = parentNode.property;
+                    if (parentNode.computed) {
+                      if (property.type === 'StringLiteral') {
+                        if (!module.exports[property.value]) {
+                          importSpecifiers.push(
+                            importSpecifier(
+                              identifier(property.value),
+                              identifier(property.value)
+                            )
+                          );
+                          module.exports[property.value] = {
+                            identifierName: property.value,
+                          };
+                        }
+                      } else {
+                        // this will be dynamic, static analysis is not possible
+                      }
+                    } else {
+                      if (property.type === 'Identifier') {
+                        if (!module.exports[property.name]) {
+                          importSpecifiers.push(
+                            importSpecifier(
+                              identifier(property.name),
+                              identifier(property.name)
+                            )
+                          );
+                          module.exports[property.name] = {
+                            identifierName: property.name,
+                          };
+                        }
+                      }
+                    }
+                  } else {
+                    // this will be dynamic, static analysis is not possible
+                  }
+                });
               }
             }
           },
