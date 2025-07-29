@@ -6,7 +6,7 @@ import transformImports from './ast-transformers/import-declaration.js';
 import transformNamedExports from './ast-transformers/export-named-declaration.js';
 import transformDefaultExports from './ast-transformers/export-default-declaration.js';
 import transformExportAll from './ast-transformers/export-all-declaration.js';
-import { hasDependencies } from './utils.js';
+import { traverseDependencyGraph } from './utils.js';
 import { ExternalModule } from './external-module.js';
 import {
   Identifier,
@@ -37,36 +37,22 @@ export class Bundle {
   private getBundle(module: Module): string {
     let code = '';
 
-    if (hasDependencies(module)) {
-      for (const [, childModule] of Object.entries(module.dependencies)) {
-        if (childModule instanceof ExternalModule) {
-          continue;
-        }
+    traverseDependencyGraph(module, (module) => {
+      code += generate(module.ast).code + '\n';
+    });
 
-        code += this.getBundle(childModule);
-      }
-    }
-
-    code += generate(module.ast).code + '\n';
     return code;
   }
 
   private transformAst(module: Module): void {
-    if (hasDependencies(module)) {
-      for (const [, childModule] of Object.entries(module.dependencies)) {
-        if (childModule instanceof ExternalModule) {
-          continue;
-        }
-
-        this.transformAst(childModule);
-      }
-    }
-
-    traverse(module.ast, {
-      ImportDeclaration: (path) => transformImports(path, module),
-      ExportNamedDeclaration: (path) => transformNamedExports(path, module),
-      ExportDefaultDeclaration: (path) => transformDefaultExports(path, module),
-      ExportAllDeclaration: (path) => transformExportAll(path, module),
+    traverseDependencyGraph(module, (module) => {
+      traverse(module.ast, {
+        ImportDeclaration: (path) => transformImports(path, module),
+        ExportNamedDeclaration: (path) => transformNamedExports(path, module),
+        ExportDefaultDeclaration: (path) =>
+          transformDefaultExports(path, module),
+        ExportAllDeclaration: (path) => transformExportAll(path, module),
+      });
     });
   }
 
@@ -136,19 +122,11 @@ export class Bundle {
   }
 
   private deconflictIdentifiers(module: Module) {
-    if (hasDependencies(module)) {
-      for (const [, childModule] of Object.entries(module.dependencies)) {
-        if (childModule instanceof ExternalModule) {
-          continue;
-        }
-
-        this.deconflictIdentifiers(childModule);
-      }
-    }
-
-    this.deconflictExternalImports(module);
-    this.deconflictBindings(module);
-    this.deconflictAnonymousExports(module);
+    traverseDependencyGraph(module, (module) => {
+      this.deconflictExternalImports(module);
+      this.deconflictBindings(module);
+      this.deconflictAnonymousExports(module);
+    });
   }
 
   private deconflictExternalImports(module: Module) {
@@ -176,20 +154,12 @@ export class Bundle {
   private hoistExternalImports(module: Module): string {
     let code = '';
 
-    if (hasDependencies(module)) {
-      for (const [, childModule] of Object.entries(module.dependencies)) {
-        if (childModule instanceof ExternalModule) {
-          continue;
-        }
-
-        code += this.hoistExternalImports(childModule);
+    traverseDependencyGraph(module, (module) => {
+      for (const importDeclaration of module.externalImports) {
+        code += generate(importDeclaration.node).code + '\n';
+        importDeclaration.remove();
       }
-    }
-
-    for (const importDeclaration of module.externalImports) {
-      code += generate(importDeclaration.node).code + '\n';
-      importDeclaration.remove();
-    }
+    });
 
     return code;
   }
@@ -197,183 +167,175 @@ export class Bundle {
   private convertExternalExportsToImports(module: Module) {
     let code = '';
 
-    if (hasDependencies(module)) {
-      for (const [, childModule] of Object.entries(module.dependencies)) {
-        if (childModule instanceof ExternalModule) {
-          continue;
-        }
-
-        code += this.convertExternalExportsToImports(childModule);
-      }
-    }
-
-    if (module.isEntryModule) {
-      return code;
-    }
-
-    for (const externalExport of module.externalExports) {
-      const importSpecifiers = [];
-
-      for (const specifier of externalExport.node.specifiers) {
-        let importedSpecifier:
-          | ImportSpecifier
-          | ImportNamespaceSpecifier
-          | ImportDefaultSpecifier;
-
-        if (specifier.type === 'ExportSpecifier') {
-          const local = specifier.local as Identifier | StringLiteral;
-          const localName =
-            local.type === 'Identifier' ? local.name : local.value;
-          const exportedName =
-            specifier.exported.type === 'Identifier'
-              ? specifier.exported.name
-              : specifier.exported.value;
-
-          if (localName === 'default') {
-            importedSpecifier = importDefaultSpecifier(
-              identifier(module.exports[exportedName].identifierName)
-            );
-          } else {
-            importedSpecifier = importSpecifier(
-              identifier(module.exports[exportedName].identifierName),
-              local.type === 'Identifier'
-                ? identifier(localName)
-                : stringLiteral(localName)
-            );
-          }
-
-          importSpecifiers.push(importedSpecifier);
-        } else if (specifier.type === 'ExportNamespaceSpecifier') {
-          const exportedName = specifier.exported.name;
-          importedSpecifier = importNamespaceSpecifier(
-            identifier(exportedName)
-          );
-          importSpecifiers.push(importedSpecifier);
-        }
+    traverseDependencyGraph(module, (module) => {
+      if (module.isEntryModule) {
+        return;
       }
 
-      code +=
-        generate(
-          importDeclaration(importSpecifiers, externalExport.node.source!)
-        ).code + '\n';
-      externalExport.remove();
-    }
+      for (const externalExport of module.externalExports) {
+        const importSpecifiers = [];
 
-    if (module.externalExportAlls.length > 0) {
-      const importSpecifiers: ImportSpecifier[] = [];
-      for (const dependent of module.dependents) {
-        traverse(dependent.ast, {
-          ImportDeclaration: (path) => {
-            const dependency = dependent.dependencies[path.node.source.value];
-            if (dependency instanceof ExternalModule) {
-              return;
+        for (const specifier of externalExport.node.specifiers) {
+          let importedSpecifier:
+            | ImportSpecifier
+            | ImportNamespaceSpecifier
+            | ImportDefaultSpecifier;
+
+          if (specifier.type === 'ExportSpecifier') {
+            const local = specifier.local as Identifier | StringLiteral;
+            const localName =
+              local.type === 'Identifier' ? local.name : local.value;
+            const exportedName =
+              specifier.exported.type === 'Identifier'
+                ? specifier.exported.name
+                : specifier.exported.value;
+
+            if (localName === 'default') {
+              importedSpecifier = importDefaultSpecifier(
+                identifier(module.exports[exportedName].identifierName)
+              );
+            } else {
+              importedSpecifier = importSpecifier(
+                identifier(module.exports[exportedName].identifierName),
+                local.type === 'Identifier'
+                  ? identifier(localName)
+                  : stringLiteral(localName)
+              );
             }
 
-            if (dependency.fileName === module.fileName) {
-              const namedSpecifiers = path.node.specifiers.filter(
-                (specifier) => specifier.type === 'ImportSpecifier'
-              );
+            importSpecifiers.push(importedSpecifier);
+          } else if (specifier.type === 'ExportNamespaceSpecifier') {
+            const exportedName = specifier.exported.name;
+            importedSpecifier = importNamespaceSpecifier(
+              identifier(exportedName)
+            );
+            importSpecifiers.push(importedSpecifier);
+          }
+        }
 
-              const namespaceSpecifiers = path.node.specifiers.filter(
-                (specifier) => specifier.type === 'ImportNamespaceSpecifier'
-              );
+        code +=
+          generate(
+            importDeclaration(importSpecifiers, externalExport.node.source!)
+          ).code + '\n';
+        externalExport.remove();
+      }
 
-              for (const specifier of namedSpecifiers) {
-                const importedName =
-                  specifier.imported.type === 'Identifier'
-                    ? specifier.imported.name
-                    : specifier.imported.value;
-                if (!module.exports[importedName]) {
-                  importSpecifiers.push(specifier);
-                  module.exports[importedName] = {
-                    identifierName: importedName,
-                  };
-                }
+      if (module.externalExportAlls.length > 0) {
+        const importSpecifiers: ImportSpecifier[] = [];
+        for (const dependent of module.dependents) {
+          traverse(dependent.ast, {
+            ImportDeclaration: (path) => {
+              const dependency = dependent.dependencies[path.node.source.value];
+              if (dependency instanceof ExternalModule) {
+                return;
               }
 
-              for (const specifier of namespaceSpecifiers) {
-                const binding = path.scope.getBinding(specifier.local.name);
-                binding?.referencePaths.forEach((referencePath) => {
-                  const parentNode = referencePath.parentPath?.node;
-                  if (parentNode?.type === 'MemberExpression') {
-                    const property = parentNode.property;
-                    if (parentNode.computed) {
-                      if (property.type === 'StringLiteral') {
-                        if (!module.exports[property.value]) {
-                          importSpecifiers.push(
-                            importSpecifier(
-                              identifier(property.value),
-                              identifier(property.value)
-                            )
-                          );
-                          module.exports[property.value] = {
-                            identifierName: property.value,
-                          };
+              if (dependency.fileName === module.fileName) {
+                const namedSpecifiers = path.node.specifiers.filter(
+                  (specifier) => specifier.type === 'ImportSpecifier'
+                );
+
+                const namespaceSpecifiers = path.node.specifiers.filter(
+                  (specifier) => specifier.type === 'ImportNamespaceSpecifier'
+                );
+
+                for (const specifier of namedSpecifiers) {
+                  const importedName =
+                    specifier.imported.type === 'Identifier'
+                      ? specifier.imported.name
+                      : specifier.imported.value;
+                  if (!module.exports[importedName]) {
+                    importSpecifiers.push(specifier);
+                    module.exports[importedName] = {
+                      identifierName: importedName,
+                    };
+                  }
+                }
+
+                for (const specifier of namespaceSpecifiers) {
+                  const binding = path.scope.getBinding(specifier.local.name);
+                  binding?.referencePaths.forEach((referencePath) => {
+                    const parentNode = referencePath.parentPath?.node;
+                    if (parentNode?.type === 'MemberExpression') {
+                      const property = parentNode.property;
+                      if (parentNode.computed) {
+                        if (property.type === 'StringLiteral') {
+                          if (!module.exports[property.value]) {
+                            importSpecifiers.push(
+                              importSpecifier(
+                                identifier(property.value),
+                                identifier(property.value)
+                              )
+                            );
+                            module.exports[property.value] = {
+                              identifierName: property.value,
+                            };
+                          }
+                        } else {
+                          // this will be dynamic, static analysis is not possible
                         }
                       } else {
-                        // this will be dynamic, static analysis is not possible
-                      }
-                    } else {
-                      if (property.type === 'Identifier') {
-                        if (!module.exports[property.name]) {
-                          importSpecifiers.push(
-                            importSpecifier(
-                              identifier(property.name),
-                              identifier(property.name)
-                            )
-                          );
-                          module.exports[property.name] = {
-                            identifierName: property.name,
-                          };
+                        if (property.type === 'Identifier') {
+                          if (!module.exports[property.name]) {
+                            importSpecifiers.push(
+                              importSpecifier(
+                                identifier(property.name),
+                                identifier(property.name)
+                              )
+                            );
+                            module.exports[property.name] = {
+                              identifierName: property.name,
+                            };
+                          }
                         }
                       }
+                    } else {
+                      // this will be dynamic, static analysis is not possible
                     }
-                  } else {
-                    // this will be dynamic, static analysis is not possible
-                  }
-                });
+                  });
+                }
               }
+            },
+          });
+
+          if (importSpecifiers.length > 0) {
+            const [firstExternalExportAll, ...restExternalExportAlls] =
+              module.externalExportAlls;
+            code +=
+              generate(
+                importDeclaration(
+                  importSpecifiers,
+                  firstExternalExportAll.node.source
+                )
+              ).code + '\n';
+
+            if (restExternalExportAlls.length > 0) {
+              importSpecifiers.forEach((importSpecifier) => {
+                console.warn(
+                  `Ambigious external export resolution: ${module.fileName} re-exports ${importSpecifier.imported.type === 'Identifier' ? importSpecifier.imported.name : importSpecifier.imported.value} from one of the external modules ${module.externalExportAlls.map((externalExportAll) => externalExportAll.node.source.value).join(' and ')}, guessing ${firstExternalExportAll.node.source.value}`
+                );
+              });
+
+              restExternalExportAlls.forEach((externalExportAll) => {
+                code +=
+                  generate(importDeclaration([], externalExportAll.node.source))
+                    .code + '\n';
+              });
             }
-          },
-        });
-
-        if (importSpecifiers.length > 0) {
-          const [firstExternalExportAll, ...restExternalExportAlls] =
-            module.externalExportAlls;
-          code +=
-            generate(
-              importDeclaration(
-                importSpecifiers,
-                firstExternalExportAll.node.source
-              )
-            ).code + '\n';
-
-          if (restExternalExportAlls.length > 0) {
-            importSpecifiers.forEach((importSpecifier) => {
-              console.warn(
-                `Ambigious external export resolution: ${module.fileName} re-exports ${importSpecifier.imported.type === 'Identifier' ? importSpecifier.imported.name : importSpecifier.imported.value} from one of the external modules ${module.externalExportAlls.map((externalExportAll) => externalExportAll.node.source.value).join(' and ')}, guessing ${firstExternalExportAll.node.source.value}`
-              );
-            });
-
-            restExternalExportAlls.forEach((externalExportAll) => {
+          } else {
+            module.externalExportAlls.forEach((externalExportAll) => {
               code +=
                 generate(importDeclaration([], externalExportAll.node.source))
                   .code + '\n';
             });
           }
-        } else {
-          module.externalExportAlls.forEach((externalExportAll) => {
-            code +=
-              generate(importDeclaration([], externalExportAll.node.source))
-                .code + '\n';
-          });
+        }
+
+        for (const externalExportAll of module.externalExportAlls) {
+          externalExportAll.remove();
         }
       }
-
-      for (const externalExportAll of module.externalExportAlls) {
-        externalExportAll.remove();
-      }
-    }
+    });
 
     return code;
   }

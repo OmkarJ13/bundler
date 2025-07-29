@@ -8,6 +8,7 @@ import {
 import RESERVED_NAMES from './reserved-names';
 import { basename, extname } from 'path';
 import { Module } from './module';
+import { ExternalModule } from './external-module';
 
 const illegalCharacters = /[^\w$]/g;
 
@@ -40,6 +41,17 @@ export function declareConst(
   ]);
 }
 
-export function hasDependencies(module: Module): boolean {
-  return Object.entries(module.dependencies).length > 0;
+export function traverseDependencyGraph(
+  module: Module,
+  callback: (module: Module) => void
+) {
+  for (const [, childModule] of Object.entries(module.dependencies)) {
+    if (childModule instanceof ExternalModule) {
+      continue;
+    }
+
+    traverseDependencyGraph(childModule, callback);
+  }
+
+  callback(module);
 }
