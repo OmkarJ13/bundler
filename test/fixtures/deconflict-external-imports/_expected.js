@@ -1,5 +1,9 @@
-import { name } from 'name';
-import { name as name$1 } from 'name';
+import { foo } from 'foo';
+import * as foo$1 from 'foo';
+import foo$2 from 'foo';
+import { foo as foo$3 } from 'foo';
 
-const message = `Hello, ${name}!`;
-console.log(name$1, message);
+const message = `Hello, ${foo}!`;
+const message$1 = `Hello, ${foo$1.name}!`;
+const message$2 = `Hello, ${foo$2}!`;
+console.log(foo$3, message, message$1, message$2);

@@ -59,7 +59,7 @@ export class Module {
     this.analyseDependencies();
     this.analyzeExports();
     this.analyzeBindings();
-    this.analyzeExternalImports();
+    this.analyzeExternalImportsAndExports();
   }
 
   private fixImportsWithoutExtension() {
@@ -348,6 +348,16 @@ export class Module {
         }
       },
       ImportNamespaceSpecifier: (path) => {
+        // Todo fix this mess, need a better way to handle this
+        const importDeclaration =
+          path.parentPath as NodePath<ImportDeclaration>;
+        const importPath = importDeclaration.node.source.value;
+        const dependency = this.dependencies[importPath];
+
+        if (dependency instanceof ExternalModule) {
+          return;
+        }
+
         // Import namespace specifiers are converted to variables inside the module during bundling, so we need to include it as a binding
         const binding = path.scope.getBinding(path.node.local.name);
         if (binding) {
@@ -357,7 +367,7 @@ export class Module {
     });
   }
 
-  private analyzeExternalImports() {
+  private analyzeExternalImportsAndExports() {
     traverse(this.ast, {
       ImportDeclaration: (path) => {
         const importPath = path.node.source.value;

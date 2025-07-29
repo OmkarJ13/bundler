@@ -92,32 +92,34 @@ export class Bundle {
     const exports = Object.values(module.exports);
 
     module.bindings.forEach((binding) => {
-      const identifierName = this.getDeconflictedIdentifierName(
-        binding.identifier.name
-      );
+      const oldIdentifierName = binding.identifier.name;
+      const identifierName =
+        this.getDeconflictedIdentifierName(oldIdentifierName);
 
-      binding.identifier.name = identifierName;
+      if (identifierName !== oldIdentifierName) {
+        binding.identifier.name = identifierName;
 
-      binding.referencePaths.forEach((path) => {
-        if (path.node.type === 'Identifier') {
-          path.node.name = identifierName;
+        binding.referencePaths.forEach((path) => {
+          if (path.node.type === 'Identifier') {
+            path.node.name = identifierName;
+          }
+        });
+
+        binding.constantViolations.forEach((path) => {
+          if (
+            path.isAssignmentExpression() &&
+            path.node.left.type === 'Identifier'
+          ) {
+            path.node.left.name = identifierName;
+          }
+        });
+
+        const exported = exports.find(
+          (exported) => exported.binding && exported.binding === binding
+        );
+        if (exported) {
+          exported.identifierName = identifierName;
         }
-      });
-
-      binding.constantViolations.forEach((path) => {
-        if (
-          path.isAssignmentExpression() &&
-          path.node.left.type === 'Identifier'
-        ) {
-          path.node.left.name = identifierName;
-        }
-      });
-
-      const exported = exports.find(
-        (exported) => exported.binding && exported.binding === binding
-      );
-      if (exported) {
-        exported.identifierName = identifierName;
       }
     });
   }
@@ -152,21 +154,19 @@ export class Bundle {
   private deconflictExternalImports(module: Module) {
     for (const externalImport of module.externalImports) {
       for (const specifier of externalImport.node.specifiers) {
-        if (specifier.type === 'ImportSpecifier') {
-          const oldSpecifierName = specifier.local.name;
-          const specifierName = this.getDeconflictedIdentifierName(
-            specifier.local.name
-          );
-          if (specifierName !== oldSpecifierName) {
-            specifier.local.name = specifierName;
-            const bindings = externalImport.scope.getBinding(oldSpecifierName);
-            if (bindings) {
-              bindings.referencePaths.forEach((path) => {
-                if (path.node.type === 'Identifier') {
-                  path.node.name = specifierName;
-                }
-              });
-            }
+        const oldSpecifierName = specifier.local.name;
+        const specifierName =
+          this.getDeconflictedIdentifierName(oldSpecifierName);
+
+        if (specifierName !== oldSpecifierName) {
+          specifier.local.name = specifierName;
+          const bindings = externalImport.scope.getBinding(oldSpecifierName);
+          if (bindings) {
+            bindings.referencePaths.forEach((path) => {
+              if (path.node.type === 'Identifier') {
+                path.node.name = specifierName;
+              }
+            });
           }
         }
       }
