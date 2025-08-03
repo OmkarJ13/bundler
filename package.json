@@ -1,5 +1,5 @@
 {
-  "name": "redemption",
+  "name": "bundler",
   "version": "1.0.0",
   "description": "A minimal JavaScript bundler",
   "main": "./dist/index.js",
@@ -18,10 +18,10 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OmkarJ13/Redemption.git"
+    "url": "git+https://github.com/OmkarJ13/bundler.git"
   },
   "bin": {
-    "redemption": "./dist/cli.js"
+    "bundler": "./dist/cli.js"
   },
   "keywords": [
     "bundler",
@@ -32,9 +32,9 @@
   "author": "OmkarJ13",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/OmkarJ13/Redemption/issues"
+    "url": "https://github.com/OmkarJ13/bundler/issues"
   },
-  "homepage": "https://github.com/OmkarJ13/Redemption#readme",
+  "homepage": "https://github.com/OmkarJ13/bundler#readme",
   "devDependencies": {
     "@babel/generator": "^7.28.0",
     "@babel/parser": "^7.28.0",

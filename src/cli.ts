@@ -5,7 +5,7 @@ import { hideBin } from 'yargs/helpers';
 import { Bundle } from './bundle.js';
 
 yargs()
-  .scriptName('redemption')
+  .scriptName('bundler')
   .usage('$0 [command] [options]')
   .command(
     'bundle [options]',
