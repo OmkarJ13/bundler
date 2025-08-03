@@ -6,9 +6,10 @@ import transformImports from './ast-transformers/import-declaration.js';
 import transformNamedExports from './ast-transformers/export-named-declaration.js';
 import transformDefaultExports from './ast-transformers/export-default-declaration.js';
 import transformExportAll from './ast-transformers/export-all-declaration.js';
-import { traverseDependencyGraph } from './utils.js';
+import { declareConst, traverseDependencyGraph } from './utils.js';
 import { ExternalModule } from './external-module.js';
 import {
+  callExpression,
   Identifier,
   identifier,
   importDeclaration,
@@ -18,6 +19,9 @@ import {
   importNamespaceSpecifier,
   ImportSpecifier,
   importSpecifier,
+  memberExpression,
+  objectExpression,
+  objectProperty,
   stringLiteral,
   StringLiteral,
 } from '@babel/types';
@@ -53,6 +57,32 @@ export class Bundle {
           transformDefaultExports(path, module),
         ExportAllDeclaration: (path) => transformExportAll(path, module),
       });
+
+      if (!module.isEntryModule && module.exports['*']) {
+        const exportAllNamespace = declareConst(
+          module.exports['*'].identifierName,
+          callExpression(
+            memberExpression(identifier('Object'), identifier('freeze')),
+            [
+              objectExpression(
+                Object.entries(module.exports)
+                  .filter(
+                    ([exportedName]) =>
+                      exportedName !== 'default' && exportedName !== '*'
+                  )
+                  .map(([exportedName, { identifierName }]) =>
+                    objectProperty(
+                      stringLiteral(exportedName),
+                      identifier(identifierName)
+                    )
+                  )
+              ),
+            ]
+          )
+        );
+
+        module.ast.program.body.push(exportAllNamespace);
+      }
     });
   }
 
@@ -123,32 +153,9 @@ export class Bundle {
 
   private deconflictIdentifiers(module: Module) {
     traverseDependencyGraph(module, (module) => {
-      this.deconflictExternalImports(module);
       this.deconflictBindings(module);
       this.deconflictAnonymousExports(module);
     });
-  }
-
-  private deconflictExternalImports(module: Module) {
-    for (const externalImport of module.externalImports) {
-      for (const specifier of externalImport.node.specifiers) {
-        const oldSpecifierName = specifier.local.name;
-        const specifierName =
-          this.getDeconflictedIdentifierName(oldSpecifierName);
-
-        if (specifierName !== oldSpecifierName) {
-          specifier.local.name = specifierName;
-          const bindings = externalImport.scope.getBinding(oldSpecifierName);
-          if (bindings) {
-            bindings.referencePaths.forEach((path) => {
-              if (path.node.type === 'Identifier') {
-                path.node.name = specifierName;
-              }
-            });
-          }
-        }
-      }
-    }
   }
 
   private hoistExternalImports(module: Module): string {
@@ -207,7 +214,7 @@ export class Bundle {
           } else if (specifier.type === 'ExportNamespaceSpecifier') {
             const exportedName = specifier.exported.name;
             importedSpecifier = importNamespaceSpecifier(
-              identifier(exportedName)
+              identifier(module.exports[exportedName].identifierName)
             );
             importSpecifiers.push(importedSpecifier);
           }

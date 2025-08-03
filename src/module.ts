@@ -58,6 +58,7 @@ export class Module {
     this.fixImportsWithoutExtension();
     this.analyseDependencies();
     this.analyzeExports();
+    this.analyzeImports();
     this.analyzeBindings();
     this.analyzeExternalImportsAndExports();
   }
@@ -332,6 +333,29 @@ export class Module {
     });
   }
 
+  private analyzeImports() {
+    traverse(this.ast, {
+      ImportDeclaration: (path) => {
+        const importPath = path.node.source.value;
+        const dependency = this.dependencies[importPath];
+
+        if (dependency instanceof ExternalModule) {
+          return;
+        }
+
+        const namespaceSpecifiers = path.node.specifiers.filter(
+          (specifier) => specifier.type === 'ImportNamespaceSpecifier'
+        );
+
+        if (namespaceSpecifiers.length > 0 && !dependency.exports['*']) {
+          dependency.exports['*'] = {
+            identifierName: namespaceSpecifiers[0].local.name,
+          };
+        }
+      },
+    });
+  }
+
   private analyzeBindings() {
     traverse(this.ast, {
       Identifier: (path) => {
@@ -347,21 +371,34 @@ export class Module {
           this.bindings.add(binding);
         }
       },
-      ImportNamespaceSpecifier: (path) => {
-        // Todo fix this mess, need a better way to handle this
-        const importDeclaration =
-          path.parentPath as NodePath<ImportDeclaration>;
-        const importPath = importDeclaration.node.source.value;
+      ImportDeclaration: (path) => {
+        const importPath = path.node.source.value;
         const dependency = this.dependencies[importPath];
 
         if (dependency instanceof ExternalModule) {
-          return;
-        }
-
-        // Import namespace specifiers are converted to variables inside the module during bundling, so we need to include it as a binding
-        const binding = path.scope.getBinding(path.node.local.name);
-        if (binding) {
-          this.bindings.add(binding);
+          path.node.specifiers.forEach((specifier) => {
+            const localName = specifier.local.name;
+            const binding = path.scope.getBinding(localName);
+            if (binding) {
+              this.bindings.add(binding);
+            }
+          });
+        } else {
+          path.node.specifiers.forEach((specifier) => {
+            if (specifier.type === 'ImportSpecifier') {
+              const importedName =
+                specifier.imported.type === 'Identifier'
+                  ? specifier.imported.name
+                  : specifier.imported.value;
+              const exported = dependency.exports[importedName];
+              if (!exported) {
+                const binding = path.scope.getBinding(specifier.local.name);
+                if (binding) {
+                  this.bindings.add(binding);
+                }
+              }
+            }
+          });
         }
       },
     });

@@ -5,7 +5,6 @@ import { "stuff-2" as stuff2 } from 'stuff';
 import { unknown1, unknown2, unknown3, unknown4, unknown5 } from 'stuff';
 import 'hehe';
 
-
 const namespace = Object.freeze({
   "foo": foo,
   "baz": baz,

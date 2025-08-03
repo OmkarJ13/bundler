@@ -1,17 +1,7 @@
 import { NodePath } from '@babel/traverse';
-import {
-  callExpression,
-  identifier,
-  ImportDeclaration,
-  memberExpression,
-  objectExpression,
-  objectProperty,
-  stringLiteral,
-  VariableDeclaration,
-} from '@babel/types';
+import { ImportDeclaration, VariableDeclaration } from '@babel/types';
 import { ExternalModule } from '../external-module';
 import { Module } from '../module';
-import { declareConst } from '../utils';
 
 export default function (path: NodePath<ImportDeclaration>, module: Module) {
   const importPath = path.node.source.value;
@@ -24,7 +14,6 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
   const variableDeclarations: VariableDeclaration[] = [];
 
   for (const specifier of path.node.specifiers) {
-    let variable: VariableDeclaration;
     const localName = specifier.local.name;
     const referencePaths = path.scope.getBinding(localName)?.referencePaths;
 
@@ -40,25 +29,11 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
       }
       case 'ImportNamespaceSpecifier':
         // import * as foo from './foo.js';
-        variable = declareConst(
-          localName,
-          callExpression(
-            memberExpression(identifier('Object'), identifier('freeze')),
-            [
-              objectExpression(
-                Object.entries(dependency.exports)
-                  .filter(([exportedName]) => exportedName !== 'default')
-                  .map(([exportedName, { identifierName }]) =>
-                    objectProperty(
-                      stringLiteral(exportedName),
-                      identifier(identifierName)
-                    )
-                  )
-              ),
-            ]
-          )
-        );
-        variableDeclarations.push(variable);
+        referencePaths?.forEach((path) => {
+          if (path.node.type === 'Identifier') {
+            path.node.name = dependency.exports['*'].identifierName;
+          }
+        });
         break;
       case 'ImportSpecifier': {
         const originalName =
