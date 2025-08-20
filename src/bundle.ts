@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import traverse, { Binding } from '@babel/traverse';
 import { generate } from '@babel/generator';
 import { Module } from './module.js';
-import { program, file, File } from '@babel/types';
+import { program, file } from '@babel/types';
 import transformImports from './ast-transformers/import-declaration.js';
 import transformNamedExports from './ast-transformers/export-named-declaration.js';
 import transformDefaultExports from './ast-transformers/export-default-declaration.js';
@@ -32,7 +32,6 @@ import {
   objectProperty,
   stringLiteral,
 } from '@babel/types';
-import { ParseResult } from '@babel/parser';
 
 export class Bundle {
   private entryPath: string;
@@ -59,16 +58,13 @@ export class Bundle {
 
     const bundledAst = file(program([], [], 'module'));
 
-    const asts: ParseResult<File>[] = [];
-
     traverseDependencyGraph(module, (module) => {
-      asts.push(module.ast);
+      bundledAst.program.body.push(...module.ast.program.body);
     });
 
-    bundledAst.program.body.push(
+    bundledAst.program.body.unshift(
       ...externalImportDeclarations,
-      ...(needsMergeNamespaces ? [mergeNamespacesFunctionDefinition] : []),
-      ...asts.map((ast) => ast.program.body).flat()
+      ...(needsMergeNamespaces ? [mergeNamespacesFunctionDefinition] : [])
     );
 
     const bundledCode = generate(bundledAst).code;
