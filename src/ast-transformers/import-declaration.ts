@@ -55,8 +55,6 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
         referencePaths?.forEach((path) => {
           if (path.node.type === 'Identifier') {
             if (dependency.exports[originalName]) {
-              console.log('import ', localName);
-              console.log(dependency.path, dependency.exports);
               if (
                 dependency instanceof Module &&
                 dependency.exports[originalName].exportedFrom
