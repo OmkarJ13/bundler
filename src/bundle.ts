@@ -47,13 +47,33 @@ export class Bundle {
   }
 
   private getBundle(module: Module): string {
-    let code = '';
+    const externalImportDeclarations = this.getExternalImports();
+
+    let needsMergeNamespaces = false;
 
     traverseDependencyGraph(module, (module) => {
-      code += generate(module.ast).code + '\n';
+      if (module.exports['*'] && module.externalExportAlls.length > 0) {
+        needsMergeNamespaces = true;
+      }
     });
 
-    return code;
+    const bundledAst = file(program([], [], 'module'));
+
+    const asts: ParseResult<File>[] = [];
+
+    traverseDependencyGraph(module, (module) => {
+      asts.push(module.ast);
+    });
+
+    bundledAst.program.body.push(
+      ...externalImportDeclarations,
+      ...(needsMergeNamespaces ? [mergeNamespacesFunctionDefinition] : []),
+      ...asts.map((ast) => ast.program.body).flat()
+    );
+
+    const bundledCode = generate(bundledAst).code;
+
+    return bundledCode;
   }
 
   private transformAst(module: Module): void {
@@ -280,36 +300,8 @@ export class Bundle {
     const module = new Module(this.entryPath, true);
 
     this.deconflictIdentifiers(module);
-
-    const externalImportDeclarations = this.getExternalImports();
-
     this.transformAst(module);
-
-    let needsMergeNamespaces = false;
-
-    traverseDependencyGraph(module, (module) => {
-      if (module.exports['*'] && module.externalExportAlls.length > 0) {
-        needsMergeNamespaces = true;
-      }
-    });
-
-    const bundledAst = file(program([], [], 'module'));
-
-    const asts: ParseResult<File>[] = [];
-
-    traverseDependencyGraph(module, (module) => {
-      asts.push(module.ast);
-    });
-
-    bundledAst.program.body.push(
-      ...externalImportDeclarations,
-      ...(needsMergeNamespaces
-        ? [mergeNamespacesFunctionDefinition.program.body[0]]
-        : []),
-      ...asts.map((ast) => ast.program.body).flat()
-    );
-
-    const bundledCode = generate(bundledAst).code;
+    const bundledCode = this.getBundle(module);
 
     if (this.outputPath) {
       fs.writeFileSync(this.outputPath, bundledCode);

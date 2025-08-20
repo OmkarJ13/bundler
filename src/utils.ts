@@ -1,5 +1,6 @@
 import {
   Expression,
+  FunctionDeclaration,
   identifier,
   variableDeclaration,
   VariableDeclaration,
@@ -82,4 +83,4 @@ export const mergeNamespacesFunctionDefinition =
   });
   return Object.freeze(n);
 }
-`);
+`).program.body[0] as FunctionDeclaration;
