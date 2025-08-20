@@ -9,6 +9,7 @@ import RESERVED_NAMES from './reserved-names';
 import { basename, extname } from 'path';
 import { Module } from './module';
 import { ExternalModule } from './external-module';
+import { parse } from '@babel/parser';
 
 const illegalCharacters = /[^\w$]/g;
 
@@ -66,7 +67,8 @@ export function traverseDependencyGraph(
 
 export const mergeNamespacesFunctionName = '_mergeNamespaces';
 
-export const mergeNamespacesFunctionDefinition = `function _mergeNamespaces(n, m) {
+export const mergeNamespacesFunctionDefinition =
+  parse(`function _mergeNamespaces(n, m) {
   m.forEach(function (e) {
     e && typeof e !== 'string' && !Array.isArray(e) && Object.keys(e).forEach(function (k) {
       if (k !== 'default' && !(k in n)) {
@@ -80,4 +82,4 @@ export const mergeNamespacesFunctionDefinition = `function _mergeNamespaces(n, m
   });
   return Object.freeze(n);
 }
-`;
+`);

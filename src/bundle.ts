@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import traverse, { Binding } from '@babel/traverse';
 import { generate } from '@babel/generator';
 import { Module } from './module.js';
+import { program, file, File } from '@babel/types';
 import transformImports from './ast-transformers/import-declaration.js';
 import transformNamedExports from './ast-transformers/export-named-declaration.js';
 import transformDefaultExports from './ast-transformers/export-default-declaration.js';
@@ -31,6 +32,7 @@ import {
   objectProperty,
   stringLiteral,
 } from '@babel/types';
+import { ParseResult } from '@babel/parser';
 
 export class Bundle {
   private entryPath: string;
@@ -177,7 +179,7 @@ export class Bundle {
     });
   }
 
-  private deconflictAnonymousExports(
+  private deconflictExportsWithoutBindings(
     exports: Record<
       string,
       { identifierName: string; binding?: Binding; exportedFrom?: string }
@@ -197,12 +199,12 @@ export class Bundle {
 
   private deconflictIdentifiers(module: Module) {
     Module.externalModules.forEach((externalModule) => {
-      this.deconflictAnonymousExports(externalModule.exports);
+      this.deconflictExportsWithoutBindings(externalModule.exports);
     });
 
     traverseDependencyGraph(module, (module) => {
       this.deconflictBindings(module);
-      this.deconflictAnonymousExports(module.exports);
+      this.deconflictExportsWithoutBindings(module.exports);
     });
   }
 
@@ -280,15 +282,8 @@ export class Bundle {
     this.deconflictIdentifiers(module);
 
     const externalImportDeclarations = this.getExternalImports();
-    let externalImports = '';
-
-    externalImportDeclarations.forEach((importDeclaration) => {
-      externalImports += generate(importDeclaration).code + '\n';
-    });
 
     this.transformAst(module);
-
-    externalImports += externalImports ? '\n' : '';
 
     let needsMergeNamespaces = false;
 
@@ -298,10 +293,23 @@ export class Bundle {
       }
     });
 
-    const bundledCode =
-      externalImports +
-      (needsMergeNamespaces ? mergeNamespacesFunctionDefinition : '') +
-      this.getBundle(module);
+    const bundledAst = file(program([], [], 'module'));
+
+    const asts: ParseResult<File>[] = [];
+
+    traverseDependencyGraph(module, (module) => {
+      asts.push(module.ast);
+    });
+
+    bundledAst.program.body.push(
+      ...externalImportDeclarations,
+      ...(needsMergeNamespaces
+        ? [mergeNamespacesFunctionDefinition.program.body[0]]
+        : []),
+      ...asts.map((ast) => ast.program.body).flat()
+    );
+
+    const bundledCode = generate(bundledAst).code;
 
     if (this.outputPath) {
       fs.writeFileSync(this.outputPath, bundledCode);
