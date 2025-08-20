@@ -7,10 +7,6 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
   const importPath = path.node.source.value;
   const dependency: Module | ExternalModule = module.dependencies[importPath];
 
-  if (dependency instanceof ExternalModule) {
-    return;
-  }
-
   const variableDeclarations: VariableDeclaration[] = [];
 
   for (const specifier of path.node.specifiers) {
@@ -22,7 +18,22 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
         // import foo from './foo.js';
         referencePaths?.forEach((path) => {
           if (path.node.type === 'Identifier') {
-            path.node.name = dependency.exports.default.identifierName;
+            if (
+              dependency instanceof Module &&
+              dependency.exports.default.exportedFrom
+            ) {
+              const externalModule = Module.externalModules.get(
+                dependency.exports.default.exportedFrom
+              );
+              if (externalModule) {
+                path.node.name =
+                  externalModule?.exports[
+                    dependency.exports.default.localName
+                  ].identifierName;
+              }
+            } else {
+              path.node.name = dependency.exports.default.identifierName;
+            }
           }
         });
         break;
@@ -44,7 +55,25 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
         referencePaths?.forEach((path) => {
           if (path.node.type === 'Identifier') {
             if (dependency.exports[originalName]) {
-              path.node.name = dependency.exports[originalName].identifierName;
+              console.log('import ', localName);
+              console.log(dependency.path, dependency.exports);
+              if (
+                dependency instanceof Module &&
+                dependency.exports[originalName].exportedFrom
+              ) {
+                const externalModule = Module.externalModules.get(
+                  dependency.exports[originalName].exportedFrom
+                );
+                if (externalModule) {
+                  path.node.name =
+                    externalModule.exports[
+                      dependency.exports[originalName].localName
+                    ].identifierName;
+                }
+              } else {
+                path.node.name =
+                  dependency.exports[originalName].identifierName;
+              }
             }
           }
         });
@@ -52,5 +81,9 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
     }
   }
 
-  path.replaceWithMultiple(variableDeclarations);
+  if (dependency instanceof ExternalModule) {
+    path.remove();
+  } else {
+    path.replaceWithMultiple(variableDeclarations);
+  }
 }

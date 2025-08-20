@@ -11,9 +11,9 @@ import {
   stringLiteral,
   VariableDeclaration,
 } from '@babel/types';
-import { ExternalModule } from '../external-module';
 import { Module } from '../module';
 import { declareConst } from '../utils';
+import { ExternalModule } from '../external-module';
 
 export default function (
   path: NodePath<ExportNamedDeclaration>,
@@ -26,7 +26,9 @@ export default function (
   if (path.node.source) {
     // export .. from ...
     const dependency = module.dependencies[path.node.source.value];
+
     if (dependency instanceof ExternalModule) {
+      path.remove();
       return;
     }
 

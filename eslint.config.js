@@ -14,5 +14,8 @@ export default defineConfig([
     plugins: { js },
     extends: ['js/recommended'],
   },
+  {
+    ignores: ['test/fixtures/*/_expected.js', 'dist/'],
+  },
   tseslint.configs.recommended,
 ]);
