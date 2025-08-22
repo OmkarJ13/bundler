@@ -33,10 +33,9 @@ export class Module {
   exports: Record<
     string,
     {
-      localName: string;
       identifierName: string;
       binding?: Binding;
-      exportedFrom?: string;
+      reexportedFromExternalModule?: boolean;
     }
   > = {};
 
@@ -55,10 +54,10 @@ export class Module {
 
     this.fixImportsWithoutExtension();
     this.analyseDependencies();
-    this.analyzeExports();
     this.analyzeImports();
+    this.analyzeExports();
     this.analyzeBindings();
-    this.analyzeExternalImportsAndExports();
+    this.analyzeExternalExportAlls();
   }
 
   private fixImportsWithoutExtension() {
@@ -152,7 +151,6 @@ export class Module {
             case 'ClassDeclaration':
               if (declaration.id) {
                 this.exports[declaration.id.name] = {
-                  localName: declaration.id.name,
                   identifierName: declaration.id.name,
                   binding: path.scope.getBinding(declaration.id.name),
                 };
@@ -162,7 +160,6 @@ export class Module {
               declaration.declarations.forEach((declaration) => {
                 if (declaration.id.type === 'Identifier') {
                   this.exports[declaration.id.name] = {
-                    localName: declaration.id.name,
                     identifierName: declaration.id.name,
                     binding: path.scope.getBinding(declaration.id.name),
                   };
@@ -171,7 +168,6 @@ export class Module {
                     if (property.type === 'ObjectProperty') {
                       if (property.value.type === 'Identifier') {
                         this.exports[property.value.name] = {
-                          localName: property.value.name,
                           identifierName: property.value.name,
                           binding: path.scope.getBinding(property.value.name),
                         };
@@ -179,7 +175,6 @@ export class Module {
                     } else if (property.type === 'RestElement') {
                       if (property.argument.type === 'Identifier') {
                         this.exports[property.argument.name] = {
-                          localName: property.argument.name,
                           identifierName: property.argument.name,
                           binding: path.scope.getBinding(
                             property.argument.name
@@ -192,14 +187,12 @@ export class Module {
                   declaration.id.elements.forEach((element) => {
                     if (element && element.type === 'Identifier') {
                       this.exports[element.name] = {
-                        localName: element.name,
                         identifierName: element.name,
                         binding: path.scope.getBinding(element.name),
                       };
                     } else if (element && element.type === 'RestElement') {
                       if (element.argument.type === 'Identifier') {
                         this.exports[element.argument.name] = {
-                          localName: element.argument.name,
                           identifierName: element.argument.name,
                           binding: path.scope.getBinding(element.argument.name),
                         };
@@ -213,26 +206,13 @@ export class Module {
         }
 
         specifiers.forEach((spec) => {
+          const exported = spec.exported as Identifier | StringLiteral;
+          const exportedName =
+            exported.type === 'Identifier' ? exported.name : exported.value;
+
           switch (spec.type) {
             case 'ExportNamespaceSpecifier':
               {
-                const exported = spec.exported as Identifier | StringLiteral;
-                const exportedName =
-                  exported.type === 'Identifier'
-                    ? exported.name
-                    : exported.value;
-                this.exports[exportedName] = {
-                  localName: '*',
-                  identifierName:
-                    exported.type === 'Identifier'
-                      ? exportedName
-                      : makeLegal(this.fileName),
-                  binding: path.scope.getBinding(exportedName),
-                  exportedFrom:
-                    dependency instanceof ExternalModule
-                      ? dependency.path
-                      : undefined,
-                };
                 if (
                   dependency instanceof ExternalModule &&
                   !dependency.exports['*']
@@ -243,6 +223,22 @@ export class Module {
                         ? exportedName
                         : makeLegal(this.fileName),
                   };
+                }
+
+                this.exports[exportedName] =
+                  dependency instanceof ExternalModule
+                    ? dependency.exports['*']
+                    : {
+                        identifierName:
+                          exported.type === 'Identifier'
+                            ? exportedName
+                            : makeLegal(this.fileName),
+                        binding: path.scope.getBinding(exportedName),
+                      };
+
+                if (dependency instanceof ExternalModule) {
+                  this.exports[exportedName].reexportedFromExternalModule =
+                    true;
                 }
               }
               break;
@@ -257,74 +253,6 @@ export class Module {
                     : spec.exported.value;
                 const isAliased = localName !== exportedName;
 
-                if (isAliased) {
-                  if (localName === 'default') {
-                    // When is aliased export and localName is default its a re-export so we know dependency is there
-                    this.exports[exportedName] =
-                      dependency instanceof ExternalModule
-                        ? {
-                            localName: 'default',
-                            identifierName: makeLegal(exportedName),
-                            exportedFrom: dependency.path,
-                          }
-                        : dependency!.exports.default;
-                  } else if (exportedName === 'default') {
-                    this.exports.default = dependency
-                      ? dependency instanceof ExternalModule
-                        ? {
-                            localName,
-                            identifierName: makeLegal(localName),
-                            exportedFrom: dependency.path,
-                          }
-                        : dependency.exports[localName]
-                      : {
-                          localName,
-                          identifierName: localName,
-                          binding: path.scope.getBinding(localName),
-                        };
-                  } else {
-                    this.exports[exportedName] = dependency
-                      ? dependency instanceof ExternalModule
-                        ? {
-                            localName,
-                            identifierName: makeLegal(localName),
-                            exportedFrom: dependency.path,
-                          }
-                        : dependency.exports[localName]
-                      : {
-                          localName,
-                          identifierName: localName,
-                          binding: path.scope.getBinding(localName),
-                        };
-                  }
-                } else {
-                  if (exportedName === 'default') {
-                    // When its non-aliased default export, its a re-export so we know dependency is there
-                    this.exports.default =
-                      dependency instanceof ExternalModule
-                        ? {
-                            localName: 'default',
-                            identifierName: makeLegal(this.fileName),
-                            exportedFrom: dependency.path,
-                          }
-                        : dependency!.exports.default;
-                  } else {
-                    this.exports[exportedName] = dependency
-                      ? dependency instanceof ExternalModule
-                        ? {
-                            localName,
-                            identifierName: exportedName,
-                            exportedFrom: dependency.path,
-                          }
-                        : dependency.exports[exportedName]
-                      : {
-                          localName,
-                          identifierName: exportedName,
-                          binding: path.scope.getBinding(exportedName),
-                        };
-                  }
-                }
-
                 if (
                   dependency instanceof ExternalModule &&
                   !dependency.exports[localName]
@@ -337,6 +265,46 @@ export class Module {
                           ? makeLegal(localName)
                           : localName,
                   };
+                }
+
+                if (isAliased) {
+                  if (localName === 'default') {
+                    // When is aliased export and localName is default its a re-export so we know dependency is there
+                    this.exports[exportedName] = dependency!.exports.default;
+                  } else if (exportedName === 'default') {
+                    this.exports[exportedName] = dependency
+                      ? dependency.exports[localName]
+                      : {
+                          identifierName: localName,
+                          binding: path.scope.getBinding(localName),
+                        };
+                  } else {
+                    this.exports[exportedName] = dependency
+                      ? dependency.exports[localName]
+                      : {
+                          identifierName: localName,
+                          binding: path.scope.getBinding(localName),
+                        };
+                  }
+                } else {
+                  if (exportedName === 'default') {
+                    // When its non-aliased default export, its a re-export so we know dependency is there
+                    this.exports[exportedName] = dependency!.exports.default;
+                  } else {
+                    this.exports[exportedName] = dependency
+                      ? dependency instanceof ExternalModule
+                        ? dependency.exports[localName]
+                        : dependency.exports[exportedName]
+                      : {
+                          identifierName: exportedName,
+                          binding: path.scope.getBinding(exportedName),
+                        };
+                  }
+                }
+
+                if (dependency instanceof ExternalModule) {
+                  this.exports[exportedName].reexportedFromExternalModule =
+                    true;
                 }
               }
               break;
@@ -352,19 +320,16 @@ export class Module {
 
             if (isReassigned) {
               this.exports.default = {
-                localName: 'default',
                 identifierName: makeLegal(this.fileName),
               };
             } else {
               this.exports.default = {
-                localName: 'default',
                 identifierName: declaration.name,
                 binding,
               };
             }
           } else {
             this.exports.default = {
-              localName: 'default',
               identifierName: makeLegal(this.fileName),
             };
           }
@@ -374,7 +339,6 @@ export class Module {
             declaration.type === 'FunctionDeclaration'
           ) {
             this.exports.default = {
-              localName: 'default',
               identifierName: declaration.id
                 ? declaration.id.name
                 : makeLegal(this.fileName),
@@ -456,18 +420,20 @@ export class Module {
             !dependency.exports[importedName] &&
             dependency.externalExportAlls.length > 0
           ) {
-            dependency.exports[importedName] = {
-              localName: importedName,
-              identifierName: localName,
-              exportedFrom: dependency.externalExportAlls[0].source.value,
-            };
-
             const externalDependency = dependency.dependencies[
               dependency.externalExportAlls[0].source.value
             ] as ExternalModule;
-            externalDependency.exports[importedName] = {
-              identifierName: localName,
-            };
+
+            if (!externalDependency.exports[importedName]) {
+              externalDependency.exports[importedName] = {
+                identifierName: localName,
+              };
+            }
+
+            dependency.exports[importedName] =
+              externalDependency.exports[importedName];
+            dependency.exports[importedName].reexportedFromExternalModule =
+              true;
           }
         }
 
@@ -478,7 +444,6 @@ export class Module {
         if (namespaceSpecifiers.length > 0 && !dependency.exports['*']) {
           dependency.exports['*'] = {
             identifierName: namespaceSpecifiers[0].local.name,
-            localName: '*',
           };
 
           if (dependency.externalExportAlls.length > 0) {
@@ -486,9 +451,12 @@ export class Module {
               const externalDependency = dependency.dependencies[
                 exportAll.source.value
               ] as ExternalModule;
-              externalDependency.exports['*'] = {
-                identifierName: makeLegal(externalDependency.path),
-              };
+
+              if (!externalDependency.exports['*']) {
+                externalDependency.exports['*'] = {
+                  identifierName: makeLegal(externalDependency.path),
+                };
+              }
             });
           }
         }
@@ -514,7 +482,7 @@ export class Module {
     });
   }
 
-  private analyzeExternalImportsAndExports() {
+  private analyzeExternalExportAlls() {
     traverse(this.ast, {
       ExportAllDeclaration: (path) => {
         const dependency = this.dependencies[path.node.source.value];

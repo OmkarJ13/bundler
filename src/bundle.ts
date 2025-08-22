@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import traverse, { Binding } from '@babel/traverse';
+import traverse from '@babel/traverse';
 import { generate } from '@babel/generator';
 import { Module } from './module.js';
 import { program, file } from '@babel/types';
@@ -195,32 +195,30 @@ export class Bundle {
     });
   }
 
-  private deconflictExportsWithoutBindings(
-    exports: Record<
-      string,
-      { identifierName: string; binding?: Binding; exportedFrom?: string }
-    >
-  ) {
-    Object.values(exports)
-      .filter((exported) => !exported.binding && !exported.exportedFrom)
-      .forEach((exported) => {
-        const oldIdentifierName = exported.identifierName;
-        const newIdentifierName =
-          this.getDeconflictedIdentifierName(oldIdentifierName);
-        if (oldIdentifierName !== newIdentifierName) {
-          exported.identifierName = newIdentifierName;
-        }
-      });
+  private deconflictExports(exports: { identifierName: string }[]) {
+    exports.forEach((exported) => {
+      const oldIdentifierName = exported.identifierName;
+      const newIdentifierName =
+        this.getDeconflictedIdentifierName(oldIdentifierName);
+      if (oldIdentifierName !== newIdentifierName) {
+        exported.identifierName = newIdentifierName;
+      }
+    });
   }
 
   private deconflictIdentifiers(module: Module) {
     Module.externalModules.forEach((externalModule) => {
-      this.deconflictExportsWithoutBindings(externalModule.exports);
+      const externalExports = Object.values(externalModule.exports);
+      this.deconflictExports(externalExports);
     });
 
     traverseDependencyGraph(module, (module) => {
       this.deconflictBindings(module);
-      this.deconflictExportsWithoutBindings(module.exports);
+      const exportsWithoutBindings = Object.values(module.exports).filter(
+        (exported) =>
+          !exported.binding && !exported.reexportedFromExternalModule
+      );
+      this.deconflictExports(exportsWithoutBindings);
     });
   }
 

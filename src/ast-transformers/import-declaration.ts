@@ -11,29 +11,15 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
 
   for (const specifier of path.node.specifiers) {
     const localName = specifier.local.name;
-    const referencePaths = path.scope.getBinding(localName)?.referencePaths;
+    const referencePaths =
+      path.scope.getBinding(localName)?.referencePaths || [];
 
     switch (specifier.type) {
       case 'ImportDefaultSpecifier': {
         // import foo from './foo.js';
         referencePaths?.forEach((path) => {
           if (path.node.type === 'Identifier') {
-            if (
-              dependency instanceof Module &&
-              dependency.exports.default.exportedFrom
-            ) {
-              const externalModule = Module.externalModules.get(
-                dependency.exports.default.exportedFrom
-              );
-              if (externalModule) {
-                path.node.name =
-                  externalModule?.exports[
-                    dependency.exports.default.localName
-                  ].identifierName;
-              }
-            } else {
-              path.node.name = dependency.exports.default.identifierName;
-            }
+            path.node.name = dependency.exports.default.identifierName;
           }
         });
         break;
@@ -52,26 +38,10 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
             ? specifier.imported.name
             : specifier.imported.value;
 
-        referencePaths?.forEach((path) => {
+        referencePaths.forEach((path) => {
           if (path.node.type === 'Identifier') {
             if (dependency.exports[originalName]) {
-              if (
-                dependency instanceof Module &&
-                dependency.exports[originalName].exportedFrom
-              ) {
-                const externalModule = Module.externalModules.get(
-                  dependency.exports[originalName].exportedFrom
-                );
-                if (externalModule) {
-                  path.node.name =
-                    externalModule.exports[
-                      dependency.exports[originalName].localName
-                    ].identifierName;
-                }
-              } else {
-                path.node.name =
-                  dependency.exports[originalName].identifierName;
-              }
+              path.node.name = dependency.exports[originalName].identifierName;
             }
           }
         });

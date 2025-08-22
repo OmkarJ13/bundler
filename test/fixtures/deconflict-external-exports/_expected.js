@@ -1,6 +1,6 @@
-import { bar, foo as foo$1, stuff } from "foo";
-import bar$1 from "foo";
-import * as foo from "foo";
+import { bar, foo, stuff } from "foo";
+import bar$2 from "foo";
+import * as bar$1 from "foo";
 import * as ijij from "ijij";
 function _mergeNamespaces(n, m) {
   m.forEach(function (e) {
@@ -22,5 +22,5 @@ const stuff$1 = 'internalStuff';
 console.log(stuff$1);
 const all = _mergeNamespaces({
   "stuff": stuff
-}, [foo, ijij]);
-console.log(foo$1, bar, foo, bar$1, stuff, all, foo);
+}, [bar$1, ijij]);
+console.log(foo, bar, bar$1, bar$2, stuff, all, bar$1);
