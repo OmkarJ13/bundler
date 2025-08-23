@@ -49,9 +49,9 @@
 - [x] Figure out how to handle external libraries
   - [x] How the fuck does this work?
   - [x] Handle external libs, don't bundle them
-- [ ] Naive Tree Shaking (Remove unused imports/exports)
-  - [ ] Modify dependency graph to identify unused dependencies
-  - [ ] Modify bundling logic to exclude unused dependencies
+- [x] Naive Tree Shaking (Remove unused imports/exports)
+  - [x] Modify dependency graph to identify unused dependencies
+  - [x] Modify bundling logic to exclude unused dependencies
 
 ## 🎯 Chapter 5: Developer Experience
 
