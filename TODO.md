@@ -64,7 +64,7 @@
 - [ ] Minification
 - [ ] Code splitting - Multiple output chunks
 - [ ] Circular dependency detection
-- [ ] Aggressive tree-shaking, for more than just imports and exports
+- [x] Aggressive tree-shaking, for more than just imports and exports
 - [ ] Sourcemaps
 - [ ] Plugin Hooks
 
