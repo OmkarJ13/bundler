@@ -298,7 +298,7 @@ export class Bundle {
   }
 
   private isExportUnused(
-    module: Module,
+    module: Module | ExternalModule,
     name: string,
     binding?: Binding
   ): boolean {
@@ -309,6 +309,7 @@ export class Bundle {
       module.path
     );
     const isUnused = Array.from(module.dependents).every((dependent) => {
+      console.log('checking ', dependent.path);
       let isUnused = true;
 
       const importBinding = dependent.importBindings.find(
@@ -327,44 +328,57 @@ export class Bundle {
       }
 
       if (binding) {
-        let exportedName: string | null = null;
+        let reexportedName: string | null = null;
         Object.entries(dependent.exports).forEach(
           ([name, { binding: exportedBinding }]) => {
             if (exportedBinding === binding) {
-              exportedName = name;
+              reexportedName = name;
             }
           }
         );
 
-        if (exportedName) {
+        if (reexportedName) {
           console.log(
             'looks like ',
             name,
             'is re-exported as ',
-            exportedName,
+            reexportedName,
             ' from ',
             dependent.path
           );
-          isUnused = this.isExportUnused(dependent, exportedName, binding);
+          isUnused = this.isExportUnused(dependent, reexportedName, binding);
         }
       }
 
       if (module.exports['*']) {
-        let exportedName: string | null = null;
+        let reexportedName: string | null = null;
         Object.entries(dependent.exports).forEach(([name, { localName }]) => {
           if (localName === '*') {
-            exportedName = name;
+            reexportedName = name;
           }
         });
 
-        if (exportedName) {
+        if (reexportedName) {
           console.log(
             'looks like ',
             name,
             'might be re-exported as namespace somewhere'
           );
-          isUnused = this.isExportUnused(dependent, exportedName, binding);
+          isUnused = this.isExportUnused(dependent, reexportedName, binding);
         }
+      }
+
+      let reexportedName: string | null = null;
+      Object.entries(dependent.exports).forEach(
+        ([exportedName, { localName }]) => {
+          if (localName === name) {
+            reexportedName = exportedName;
+          }
+        }
+      );
+
+      if (reexportedName) {
+        isUnused = this.isExportUnused(dependent, reexportedName, binding);
       }
 
       return isUnused;
@@ -374,6 +388,19 @@ export class Bundle {
   }
 
   private treeShakeUnusedBindings(module: Module): void {
+    Module.externalModules.forEach((externalModule) => {
+      Object.entries(externalModule.exports).forEach(([exportedName]) => {
+        const isExportUnused = this.isExportUnused(
+          externalModule,
+          exportedName
+        );
+
+        if (isExportUnused) {
+          console.log(exportedName, ' is unused removing it');
+          delete externalModule.exports[exportedName];
+        }
+      });
+    });
     traverseDependencyGraph(module, (module) => {
       module.bindings.forEach((binding) => {
         let exportedName: string | null = null;
@@ -416,6 +443,8 @@ export class Bundle {
 
   bundle(): string {
     Module.externalModules.clear();
+    Module.modules.clear();
+
     const module = new Module(this.entryPath, true);
 
     this.treeShakeUnusedBindings(module);

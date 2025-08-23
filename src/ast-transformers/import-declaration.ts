@@ -18,7 +18,7 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
       case 'ImportDefaultSpecifier': {
         // import foo from './foo.js';
         referencePaths?.forEach((path) => {
-          if (path.node.type === 'Identifier') {
+          if (path.node.type === 'Identifier' && dependency.exports.default) {
             path.node.name = dependency.exports.default.identifierName;
           }
         });
@@ -27,7 +27,7 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
       case 'ImportNamespaceSpecifier':
         // import * as foo from './foo.js';
         referencePaths?.forEach((path) => {
-          if (path.node.type === 'Identifier') {
+          if (path.node.type === 'Identifier' && dependency.exports['*']) {
             path.node.name = dependency.exports['*'].identifierName;
           }
         });
@@ -39,10 +39,11 @@ export default function (path: NodePath<ImportDeclaration>, module: Module) {
             : specifier.imported.value;
 
         referencePaths.forEach((path) => {
-          if (path.node.type === 'Identifier') {
-            if (dependency.exports[originalName]) {
-              path.node.name = dependency.exports[originalName].identifierName;
-            }
+          if (
+            path.node.type === 'Identifier' &&
+            dependency.exports[originalName]
+          ) {
+            path.node.name = dependency.exports[originalName].identifierName;
           }
         });
       }

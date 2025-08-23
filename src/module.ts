@@ -16,6 +16,8 @@ import { ExternalModule } from './external-module';
 export class Module {
   static externalModules: Map<string, ExternalModule> = new Map();
 
+  static modules: Map<string, Module> = new Map();
+
   path: string;
 
   fileName: string;
@@ -46,6 +48,10 @@ export class Module {
   bindings: Set<Binding> = new Set();
 
   constructor(path: string, isEntryModule = false) {
+    if (isEntryModule) {
+      Module.modules.set(path, this);
+    }
+
     this.path = path;
     this.isEntryModule = isEntryModule;
     this.directory = dirname(this.path);
@@ -119,8 +125,21 @@ export class Module {
       }
 
       if (exists) {
+        if (Module.modules.has(join(this.directory, relativePath))) {
+          const module = Module.modules.get(
+            join(this.directory, relativePath)
+          )!;
+          module.dependents.add(this);
+          return module;
+        }
+
         const dependencyModule = new Module(join(this.directory, relativePath));
         dependencyModule.dependents.add(this);
+
+        Module.modules.set(
+          join(this.directory, relativePath),
+          dependencyModule
+        );
         return dependencyModule;
       } else {
         throw new Error(
@@ -128,10 +147,14 @@ export class Module {
         );
       }
     } else {
-      const externalModule = new ExternalModule(relativePath);
       if (Module.externalModules.has(relativePath)) {
-        return Module.externalModules.get(relativePath)!;
+        const externalModule = Module.externalModules.get(relativePath)!;
+        externalModule.dependents.add(this);
+        return externalModule;
       }
+
+      const externalModule = new ExternalModule(relativePath);
+      externalModule.dependents.add(this);
 
       Module.externalModules.set(relativePath, externalModule);
       return externalModule;
