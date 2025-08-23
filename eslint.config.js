@@ -15,7 +15,7 @@ export default defineConfig([
     extends: ['js/recommended'],
   },
   {
-    ignores: ['test/fixtures/*/_expected.js', 'dist/'],
+    ignores: ['test/fixtures/*/', 'dist/'],
   },
   tseslint.configs.recommended,
 ]);

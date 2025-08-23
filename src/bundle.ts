@@ -289,10 +289,21 @@ export class Bundle {
     return importDeclarations;
   }
 
+  private treeShakeUnusedBindings(module: Module): void {
+    traverseDependencyGraph(module, (module) => {
+      module.bindings.forEach((binding) => {
+        if (binding.referencePaths.length === 0) {
+          binding.path.remove();
+        }
+      });
+    });
+  }
+
   bundle(): string {
     Module.externalModules.clear();
     const module = new Module(this.entryPath, true);
 
+    this.treeShakeUnusedBindings(module);
     this.deconflictIdentifiers(module);
     this.transformAst(module);
     const bundledCode = this.getBundle(module);
