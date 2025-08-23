@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import traverse from '@babel/traverse';
+import traverse, { Binding } from '@babel/traverse';
 import { generate } from '@babel/generator';
 import { Module } from './module.js';
 import { program, file } from '@babel/types';
@@ -207,19 +207,27 @@ export class Bundle {
   }
 
   private deconflictIdentifiers(module: Module) {
+    traverseDependencyGraph(module, (module) => {
+      this.deconflictBindings(module);
+    });
+
+    const exports = new Set<{ identifierName: string }>();
+
     Module.externalModules.forEach((externalModule) => {
-      const externalExports = Object.values(externalModule.exports);
-      this.deconflictExports(externalExports);
+      Object.values(externalModule.exports).forEach((exported) => {
+        exports.add(exported);
+      });
     });
 
     traverseDependencyGraph(module, (module) => {
-      this.deconflictBindings(module);
-      const exportsWithoutBindings = Object.values(module.exports).filter(
-        (exported) =>
-          !exported.binding && !exported.reexportedFromExternalModule
-      );
-      this.deconflictExports(exportsWithoutBindings);
+      Object.values(module.exports)
+        .filter((exported) => !exported.binding)
+        .forEach((exported) => {
+          exports.add(exported);
+        });
     });
+
+    this.deconflictExports(Array.from(exports));
   }
 
   private getExternalImports(): ImportDeclaration[] {
@@ -289,11 +297,70 @@ export class Bundle {
     return importDeclarations;
   }
 
+  private isExportUnused(
+    module: Module,
+    name: string,
+    binding: Binding
+  ): boolean {
+    if (module.exports['*']) {
+      // Imported as namespace somewhere, assuming its used
+      return false;
+    }
+
+    const isUnused = Array.from(module.dependents).every((dependent) => {
+      const importBinding = dependent.importBindings.find(
+        (importBinding) => importBinding.importedName === name
+      );
+      if (importBinding && importBinding.binding) {
+        return importBinding.binding.referencePaths.length === 0;
+      }
+
+      let exportedName: string | null = null;
+
+      Object.entries(dependent.exports).forEach(
+        ([name, { binding: exportedBinding }]) => {
+          if (exportedBinding === binding) {
+            exportedName = name;
+          }
+        }
+      );
+
+      if (exportedName) {
+        return this.isExportUnused(dependent, exportedName, binding);
+      }
+
+      return true;
+    });
+
+    return isUnused;
+  }
+
   private treeShakeUnusedBindings(module: Module): void {
     traverseDependencyGraph(module, (module) => {
       module.bindings.forEach((binding) => {
+        let exportedName: string | null = null;
+
+        Object.entries(module.exports).forEach(
+          ([name, { binding: exportedBinding }]) => {
+            if (binding === exportedBinding) {
+              exportedName = name;
+            }
+          }
+        );
+
         if (binding.referencePaths.length === 0) {
           binding.path.remove();
+        } else if (exportedName && !module.isEntryModule) {
+          const isExportUnused = this.isExportUnused(
+            module,
+            exportedName,
+            binding
+          );
+
+          if (isExportUnused) {
+            binding.path.remove();
+            delete module.exports[exportedName];
+          }
         }
       });
     });

@@ -1,19 +1,6 @@
 import { NodePath } from '@babel/traverse';
-import {
-  callExpression,
-  ExportNamedDeclaration,
-  Identifier,
-  identifier,
-  memberExpression,
-  objectExpression,
-  objectProperty,
-  StringLiteral,
-  stringLiteral,
-  VariableDeclaration,
-} from '@babel/types';
+import { ExportNamedDeclaration } from '@babel/types';
 import { Module } from '../module';
-import { declareConst } from '../utils';
-import { ExternalModule } from '../external-module';
 
 export default function (
   path: NodePath<ExportNamedDeclaration>,
@@ -25,45 +12,7 @@ export default function (
 
   if (path.node.source) {
     // export .. from ...
-    const dependency = module.dependencies[path.node.source.value];
-
-    if (dependency instanceof ExternalModule) {
-      path.remove();
-      return;
-    }
-
-    const specifiers = path.node.specifiers;
-    const variableDeclarations: VariableDeclaration[] = [];
-
-    specifiers.forEach((spec) => {
-      if (spec.type === 'ExportNamespaceSpecifier') {
-        const exported = spec.exported as Identifier | StringLiteral;
-        const exportedName =
-          exported.type === 'Identifier' ? exported.name : exported.value;
-        variableDeclarations.push(
-          declareConst(
-            module.exports[exportedName].identifierName,
-            callExpression(
-              memberExpression(identifier('Object'), identifier('freeze')),
-              [
-                objectExpression(
-                  Object.entries(dependency.exports)
-                    .filter(([exportedName]) => exportedName !== 'default')
-                    .map(([exportedName, { identifierName }]) =>
-                      objectProperty(
-                        stringLiteral(exportedName),
-                        identifier(identifierName)
-                      )
-                    )
-                ),
-              ]
-            )
-          )
-        );
-      }
-    });
-
-    path.replaceWithMultiple(variableDeclarations);
+    path.remove();
   } else {
     const declaration = path.node.declaration;
     if (declaration) {

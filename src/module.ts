@@ -30,12 +30,13 @@ export class Module {
 
   dependents: Set<Module> = new Set();
 
+  importBindings: { importedName: string; binding?: Binding }[] = [];
+
   exports: Record<
     string,
     {
       identifierName: string;
       binding?: Binding;
-      reexportedFromExternalModule?: boolean;
     }
   > = {};
 
@@ -212,11 +213,8 @@ export class Module {
 
           switch (spec.type) {
             case 'ExportNamespaceSpecifier':
-              {
-                if (
-                  dependency instanceof ExternalModule &&
-                  !dependency.exports['*']
-                ) {
+              if (dependency) {
+                if (!dependency.exports['*']) {
                   dependency.exports['*'] = {
                     identifierName:
                       exported.type === 'Identifier'
@@ -225,21 +223,7 @@ export class Module {
                   };
                 }
 
-                this.exports[exportedName] =
-                  dependency instanceof ExternalModule
-                    ? dependency.exports['*']
-                    : {
-                        identifierName:
-                          exported.type === 'Identifier'
-                            ? exportedName
-                            : makeLegal(this.fileName),
-                        binding: path.scope.getBinding(exportedName),
-                      };
-
-                if (dependency instanceof ExternalModule) {
-                  this.exports[exportedName].reexportedFromExternalModule =
-                    true;
-                }
+                this.exports[exportedName] = dependency.exports['*'];
               }
               break;
             case 'ExportSpecifier':
@@ -300,11 +284,6 @@ export class Module {
                           binding: path.scope.getBinding(exportedName),
                         };
                   }
-                }
-
-                if (dependency instanceof ExternalModule) {
-                  this.exports[exportedName].reexportedFromExternalModule =
-                    true;
                 }
               }
               break;
@@ -370,6 +349,27 @@ export class Module {
         const importPath = path.node.source.value;
         const dependency = this.dependencies[importPath];
 
+        path.node.specifiers.forEach((specifier) => {
+          let importedName: string;
+          if (specifier.type === 'ImportDefaultSpecifier') {
+            importedName = 'default';
+          } else if (specifier.type === 'ImportNamespaceSpecifier') {
+            importedName = '*';
+          } else {
+            importedName =
+              specifier.imported.type === 'Identifier'
+                ? specifier.imported.name
+                : specifier.imported.value;
+          }
+
+          const binding = path.scope.getBinding(specifier.local.name);
+
+          this.importBindings.push({
+            importedName: importedName,
+            binding: binding,
+          });
+        });
+
         if (dependency instanceof ExternalModule) {
           path.node.specifiers.forEach((specifier) => {
             switch (specifier.type) {
@@ -432,8 +432,6 @@ export class Module {
 
             dependency.exports[importedName] =
               externalDependency.exports[importedName];
-            dependency.exports[importedName].reexportedFromExternalModule =
-              true;
           }
         }
 

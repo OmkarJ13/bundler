@@ -65,6 +65,11 @@ export default function (
     return;
   }
 
+  if (!module.exports.default) {
+    path.remove();
+    return;
+  }
+
   // export default foo;
   const declaration = path.node.declaration;
   switch (declaration.type) {
