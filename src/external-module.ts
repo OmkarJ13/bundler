@@ -4,6 +4,7 @@ export class ExternalModule {
   exports: Record<
     string,
     {
+      localName: string;
       identifierName: string;
     }
   > = {};

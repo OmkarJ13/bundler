@@ -35,6 +35,7 @@ export class Module {
   exports: Record<
     string,
     {
+      localName: string;
       identifierName: string;
       binding?: Binding;
     }
@@ -154,6 +155,7 @@ export class Module {
                 this.exports[declaration.id.name] = {
                   identifierName: declaration.id.name,
                   binding: path.scope.getBinding(declaration.id.name),
+                  localName: declaration.id.name,
                 };
               }
               break;
@@ -163,6 +165,7 @@ export class Module {
                   this.exports[declaration.id.name] = {
                     identifierName: declaration.id.name,
                     binding: path.scope.getBinding(declaration.id.name),
+                    localName: declaration.id.name,
                   };
                 } else if (declaration.id.type === 'ObjectPattern') {
                   declaration.id.properties.forEach((property) => {
@@ -171,6 +174,7 @@ export class Module {
                         this.exports[property.value.name] = {
                           identifierName: property.value.name,
                           binding: path.scope.getBinding(property.value.name),
+                          localName: property.value.name,
                         };
                       }
                     } else if (property.type === 'RestElement') {
@@ -180,6 +184,7 @@ export class Module {
                           binding: path.scope.getBinding(
                             property.argument.name
                           ),
+                          localName: property.argument.name,
                         };
                       }
                     }
@@ -190,12 +195,14 @@ export class Module {
                       this.exports[element.name] = {
                         identifierName: element.name,
                         binding: path.scope.getBinding(element.name),
+                        localName: element.name,
                       };
                     } else if (element && element.type === 'RestElement') {
                       if (element.argument.type === 'Identifier') {
                         this.exports[element.argument.name] = {
                           identifierName: element.argument.name,
                           binding: path.scope.getBinding(element.argument.name),
+                          localName: element.argument.name,
                         };
                       }
                     }
@@ -220,6 +227,7 @@ export class Module {
                       exported.type === 'Identifier'
                         ? exportedName
                         : makeLegal(this.fileName),
+                    localName: '*',
                   };
                 }
 
@@ -248,6 +256,7 @@ export class Module {
                         : isIllegalIdentifier(localName)
                           ? makeLegal(localName)
                           : localName,
+                    localName,
                   };
                 }
 
@@ -261,6 +270,7 @@ export class Module {
                       : {
                           identifierName: localName,
                           binding: path.scope.getBinding(localName),
+                          localName,
                         };
                   } else {
                     this.exports[exportedName] = dependency
@@ -268,6 +278,7 @@ export class Module {
                       : {
                           identifierName: localName,
                           binding: path.scope.getBinding(localName),
+                          localName,
                         };
                   }
                 } else {
@@ -282,6 +293,7 @@ export class Module {
                       : {
                           identifierName: exportedName,
                           binding: path.scope.getBinding(exportedName),
+                          localName,
                         };
                   }
                 }
@@ -300,16 +312,19 @@ export class Module {
             if (isReassigned) {
               this.exports.default = {
                 identifierName: makeLegal(this.fileName),
+                localName: 'default',
               };
             } else {
               this.exports.default = {
                 identifierName: declaration.name,
                 binding,
+                localName: 'default',
               };
             }
           } else {
             this.exports.default = {
               identifierName: makeLegal(this.fileName),
+              localName: 'default',
             };
           }
         } else {
@@ -324,6 +339,7 @@ export class Module {
               binding: declaration.id
                 ? path.scope.getBinding(declaration.id.name)
                 : undefined,
+              localName: 'default',
             };
           }
         }
@@ -377,6 +393,7 @@ export class Module {
                 if (!dependency.exports['default']) {
                   dependency.exports['default'] = {
                     identifierName: specifier.local.name,
+                    localName: 'default',
                   };
                 }
                 break;
@@ -384,6 +401,7 @@ export class Module {
                 if (!dependency.exports['*']) {
                   dependency.exports['*'] = {
                     identifierName: specifier.local.name,
+                    localName: '*',
                   };
                 }
                 break;
@@ -396,6 +414,7 @@ export class Module {
                   if (!dependency.exports[importedName]) {
                     dependency.exports[importedName] = {
                       identifierName: specifier.local.name,
+                      localName: specifier.local.name,
                     };
                   }
                 }
@@ -427,6 +446,7 @@ export class Module {
             if (!externalDependency.exports[importedName]) {
               externalDependency.exports[importedName] = {
                 identifierName: localName,
+                localName,
               };
             }
 
@@ -442,6 +462,7 @@ export class Module {
         if (namespaceSpecifiers.length > 0 && !dependency.exports['*']) {
           dependency.exports['*'] = {
             identifierName: namespaceSpecifiers[0].local.name,
+            localName: '*',
           };
 
           if (dependency.externalExportAlls.length > 0) {
@@ -453,6 +474,7 @@ export class Module {
               if (!externalDependency.exports['*']) {
                 externalDependency.exports['*'] = {
                   identifierName: makeLegal(externalDependency.path),
+                  localName: '*',
                 };
               }
             });

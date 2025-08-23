@@ -300,36 +300,74 @@ export class Bundle {
   private isExportUnused(
     module: Module,
     name: string,
-    binding: Binding
+    binding?: Binding
   ): boolean {
-    if (module.exports['*']) {
-      // Imported as namespace somewhere, assuming its used
-      return false;
-    }
-
+    console.log(
+      'checking if ',
+      name,
+      ' is unused, its exported from ',
+      module.path
+    );
     const isUnused = Array.from(module.dependents).every((dependent) => {
+      let isUnused = true;
+
       const importBinding = dependent.importBindings.find(
-        (importBinding) => importBinding.importedName === name
+        (importBinding) =>
+          importBinding.importedName === name ||
+          importBinding.importedName === '*'
       );
+
       if (importBinding && importBinding.binding) {
-        return importBinding.binding.referencePaths.length === 0;
+        if (importBinding.binding.referencePaths.length === 0) {
+          console.log('not imported from ', dependent.path);
+        } else {
+          console.log('imported from ', dependent.path);
+        }
+        isUnused = importBinding.binding.referencePaths.length === 0;
       }
 
-      let exportedName: string | null = null;
+      if (binding) {
+        let exportedName: string | null = null;
+        Object.entries(dependent.exports).forEach(
+          ([name, { binding: exportedBinding }]) => {
+            if (exportedBinding === binding) {
+              exportedName = name;
+            }
+          }
+        );
 
-      Object.entries(dependent.exports).forEach(
-        ([name, { binding: exportedBinding }]) => {
-          if (exportedBinding === binding) {
+        if (exportedName) {
+          console.log(
+            'looks like ',
+            name,
+            'is re-exported as ',
+            exportedName,
+            ' from ',
+            dependent.path
+          );
+          isUnused = this.isExportUnused(dependent, exportedName, binding);
+        }
+      }
+
+      if (module.exports['*']) {
+        let exportedName: string | null = null;
+        Object.entries(dependent.exports).forEach(([name, { localName }]) => {
+          if (localName === '*') {
             exportedName = name;
           }
-        }
-      );
+        });
 
-      if (exportedName) {
-        return this.isExportUnused(dependent, exportedName, binding);
+        if (exportedName) {
+          console.log(
+            'looks like ',
+            name,
+            'might be re-exported as namespace somewhere'
+          );
+          isUnused = this.isExportUnused(dependent, exportedName, binding);
+        }
       }
 
-      return true;
+      return isUnused;
     });
 
     return isUnused;
@@ -363,6 +401,16 @@ export class Bundle {
           }
         }
       });
+
+      Object.entries(module.exports)
+        .filter(([, { binding }]) => !binding)
+        .forEach(([exportedName]) => {
+          const isExportUnused = this.isExportUnused(module, exportedName);
+
+          if (isExportUnused) {
+            delete module.exports[exportedName];
+          }
+        });
     });
   }
 
