@@ -4,7 +4,7 @@ export function defineTest(
     only,
     skip,
     throwsError,
-  }: { only?: boolean; skip?: boolean; throwsError?: string } = {}
+  }: { only?: boolean; skip?: boolean; throwsError?: string | RegExp } = {}
 ) {
   return {
     name,
