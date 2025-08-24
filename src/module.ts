@@ -10,7 +10,11 @@ import {
 import traverse, { Binding } from '@babel/traverse';
 import fs, { existsSync } from 'fs';
 import { dirname, join, basename } from 'path';
-import { isIllegalIdentifier, makeLegal } from './utils';
+import {
+  isIllegalIdentifier,
+  makeLegal,
+  traverseDependencyGraph,
+} from './utils';
 import { ExternalModule } from './external-module';
 
 export class Module {
@@ -117,6 +121,22 @@ export class Module {
     });
   }
 
+  private checkCircularDependency(module: Module): void {
+    const dependencyChain = [this.path];
+    traverseDependencyGraph(
+      module,
+      (module) => {
+        dependencyChain.push(module.path);
+        if (module === this) {
+          throw new Error(
+            `Circular dependency detected: ${dependencyChain.join(' -> ')}`
+          );
+        }
+      },
+      'pre'
+    );
+  }
+
   private getDependencyModule(relativePath: string): Module | ExternalModule {
     const isRelativePath =
       relativePath.startsWith('/') || relativePath.startsWith('.');
@@ -145,6 +165,9 @@ export class Module {
           join(this.directory, relativePath),
           dependencyModule
         );
+
+        this.checkCircularDependency(dependencyModule);
+
         return dependencyModule;
       } else {
         throw new Error(

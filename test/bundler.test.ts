@@ -23,12 +23,19 @@ describe('bundler', async () => {
       },
       async () => {
         const entryPath = path.join(fixturePath, 'index.js');
-        const bundle = new Bundle(entryPath);
-        const bundledCode = bundle.bundle();
-        await expect(bundledCode).toMatchFileSnapshot(
-          `fixtures/${name}/_expected.js`,
-          fixturePath
-        );
+        if (config.throwsError) {
+          expect(() => {
+            const bundle = new Bundle(entryPath);
+            bundle.bundle();
+          }).toThrow(config.throwsError);
+        } else {
+          const bundle = new Bundle(entryPath);
+          const bundledCode = bundle.bundle();
+          await expect(bundledCode).toMatchFileSnapshot(
+            `fixtures/${name}/_expected.js`,
+            fixturePath
+          );
+        }
       }
     );
   }

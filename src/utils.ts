@@ -53,17 +53,24 @@ export function declareConst(
 
 export function traverseDependencyGraph(
   module: Module,
-  callback: (module: Module) => void
+  callback: (module: Module) => void,
+  order: 'pre' | 'post' = 'post'
 ) {
+  if (order === 'pre') {
+    callback(module);
+  }
+
   for (const [, childModule] of Object.entries(module.dependencies)) {
     if (childModule instanceof ExternalModule) {
       continue;
     }
 
-    traverseDependencyGraph(childModule, callback);
+    traverseDependencyGraph(childModule, callback, order);
   }
 
-  callback(module);
+  if (order === 'post') {
+    callback(module);
+  }
 }
 
 export const mergeNamespacesFunctionName = '_mergeNamespaces';
