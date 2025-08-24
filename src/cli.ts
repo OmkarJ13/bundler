@@ -27,15 +27,22 @@ yargs()
         .option('treeshake', {
           default: true,
           description: 'treeshake the bundle',
+        })
+        .option('config', {
+          default: 'bundler.config.js',
+          description: 'config file',
         });
     },
-    (argv) => {
+    async (argv) => {
+      const { default: config } = await import(argv.config);
+
       const bundle = new Bundle(
-        argv.entry,
-        argv.output,
-        argv.minify,
-        argv.treeshake
+        config.entry ?? argv.entry,
+        config.output ?? argv.output,
+        config.minify ?? argv.minify,
+        config.treeshake ?? argv.treeshake
       );
+
       bundle.bundle();
     }
   )
