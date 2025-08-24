@@ -62,7 +62,7 @@
 ## 🎯 Chapter 6: Beyond Advanced
 
 - [x] Minification
-- [ ] Circular dependency detection
+- [x] Circular dependency detection
 - [x] Aggressive tree-shaking, for more than just imports and exports
 
 ---
