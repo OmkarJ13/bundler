@@ -19,10 +19,14 @@ yargs()
         .option('output', {
           default: 'dist/bundle.js',
           description: 'output bundle file',
+        })
+        .option('minify', {
+          default: false,
+          description: 'minify the bundle',
         });
     },
     (argv) => {
-      const bundle = new Bundle(argv.entry, argv.output);
+      const bundle = new Bundle(argv.entry, argv.output, argv.minify);
       bundle.bundle();
     }
   )

@@ -38,11 +38,14 @@ export class Bundle {
 
   private outputPath: string | undefined;
 
+  private minify: boolean;
+
   private identifierNames = new Set<string>();
 
-  constructor(entryPath: string, outputPath?: string) {
+  constructor(entryPath: string, outputPath?: string, minify: boolean = false) {
     this.entryPath = entryPath;
     this.outputPath = outputPath;
+    this.minify = minify;
   }
 
   private getBundle(module: Module): string {
@@ -67,7 +70,7 @@ export class Bundle {
       ...(needsMergeNamespaces ? [mergeNamespacesFunctionDefinition] : [])
     );
 
-    const bundledCode = generate(bundledAst).code;
+    const bundledCode = generate(bundledAst, { minified: this.minify }).code;
 
     return bundledCode;
   }
