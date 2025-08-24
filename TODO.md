@@ -61,11 +61,8 @@
 
 ## 🎯 Chapter 6: Beyond Advanced
 
-- [ ] Minification
+- [x] Minification
 - [ ] Circular dependency detection
 - [x] Aggressive tree-shaking, for more than just imports and exports
-- [ ] Code splitting - Multiple output chunks
-- [ ] Sourcemaps
-- [ ] Plugin Hooks
 
 ---
