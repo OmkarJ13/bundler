@@ -40,12 +40,20 @@ export class Bundle {
 
   private minify: boolean;
 
+  private treeshake: boolean;
+
   private identifierNames = new Set<string>();
 
-  constructor(entryPath: string, outputPath?: string, minify: boolean = false) {
+  constructor(
+    entryPath: string,
+    outputPath?: string,
+    minify: boolean = false,
+    treeshake: boolean = true
+  ) {
     this.entryPath = entryPath;
     this.outputPath = outputPath;
     this.minify = minify;
+    this.treeshake = treeshake;
   }
 
   private getBundle(module: Module): string {
@@ -374,7 +382,7 @@ export class Bundle {
     return isUsed;
   }
 
-  private treeShakeUnusedBindings(module: Module): void {
+  private performTreeshake(module: Module): void {
     Module.externalModules.forEach((externalModule) => {
       Object.entries(externalModule.exports).forEach(([exportedName]) => {
         const isExportUsed = this.isExportUsed(externalModule, exportedName);
@@ -438,7 +446,10 @@ export class Bundle {
 
     const module = new Module(this.entryPath, true);
 
-    this.treeShakeUnusedBindings(module);
+    if (this.treeshake) {
+      this.performTreeshake(module);
+    }
+
     this.deconflictIdentifiers(module);
     this.transformAst(module);
     const bundledCode = this.getBundle(module);

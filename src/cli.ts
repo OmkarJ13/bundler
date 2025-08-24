@@ -23,10 +23,19 @@ yargs()
         .option('minify', {
           default: false,
           description: 'minify the bundle',
+        })
+        .option('treeshake', {
+          default: true,
+          description: 'treeshake the bundle',
         });
     },
     (argv) => {
-      const bundle = new Bundle(argv.entry, argv.output, argv.minify);
+      const bundle = new Bundle(
+        argv.entry,
+        argv.output,
+        argv.minify,
+        argv.treeshake
+      );
       bundle.bundle();
     }
   )
