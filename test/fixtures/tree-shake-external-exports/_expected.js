@@ -1,5 +1,5 @@
 import { foo } from "foo";
 import "stuff";
-import "foobar";
+import * as foo$1 from "foobar";
 import "bar";
-console.log(foo);
+console.log(foo, foo$1);

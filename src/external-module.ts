@@ -8,6 +8,7 @@ export class ExternalModule {
     {
       localName: string;
       identifierName: string;
+      source: string;
     }
   > = {};
 

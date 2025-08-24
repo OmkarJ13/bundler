@@ -32,13 +32,18 @@ export class Module {
 
   dependents: Set<Module> = new Set();
 
-  importBindings: { importedName: string; binding?: Binding }[] = [];
+  importBindings: {
+    importedName: string;
+    source: string;
+    binding?: Binding;
+  }[] = [];
 
   exports: Record<
     string,
     {
       localName: string;
       identifierName: string;
+      source: string;
       binding?: Binding;
     }
   > = {};
@@ -179,6 +184,7 @@ export class Module {
                   identifierName: declaration.id.name,
                   binding: path.scope.getBinding(declaration.id.name),
                   localName: declaration.id.name,
+                  source: this.path,
                 };
               }
               break;
@@ -189,6 +195,7 @@ export class Module {
                     identifierName: declaration.id.name,
                     binding: path.scope.getBinding(declaration.id.name),
                     localName: declaration.id.name,
+                    source: this.path,
                   };
                 } else if (declaration.id.type === 'ObjectPattern') {
                   declaration.id.properties.forEach((property) => {
@@ -198,6 +205,7 @@ export class Module {
                           identifierName: property.value.name,
                           binding: path.scope.getBinding(property.value.name),
                           localName: property.value.name,
+                          source: this.path,
                         };
                       }
                     } else if (property.type === 'RestElement') {
@@ -208,6 +216,7 @@ export class Module {
                             property.argument.name
                           ),
                           localName: property.argument.name,
+                          source: this.path,
                         };
                       }
                     }
@@ -219,6 +228,7 @@ export class Module {
                         identifierName: element.name,
                         binding: path.scope.getBinding(element.name),
                         localName: element.name,
+                        source: this.path,
                       };
                     } else if (element && element.type === 'RestElement') {
                       if (element.argument.type === 'Identifier') {
@@ -226,6 +236,7 @@ export class Module {
                           identifierName: element.argument.name,
                           binding: path.scope.getBinding(element.argument.name),
                           localName: element.argument.name,
+                          source: this.path,
                         };
                       }
                     }
@@ -251,6 +262,7 @@ export class Module {
                         ? exportedName
                         : makeLegal(this.fileName),
                     localName: '*',
+                    source: dependency.path,
                   };
                 }
 
@@ -280,6 +292,7 @@ export class Module {
                           ? makeLegal(localName)
                           : localName,
                     localName,
+                    source: dependency.path,
                   };
                 }
 
@@ -294,6 +307,7 @@ export class Module {
                           identifierName: localName,
                           binding: path.scope.getBinding(localName),
                           localName,
+                          source: this.path,
                         };
                   } else {
                     this.exports[exportedName] = dependency
@@ -302,6 +316,7 @@ export class Module {
                           identifierName: localName,
                           binding: path.scope.getBinding(localName),
                           localName,
+                          source: this.path,
                         };
                   }
                 } else {
@@ -317,6 +332,7 @@ export class Module {
                           identifierName: exportedName,
                           binding: path.scope.getBinding(exportedName),
                           localName,
+                          source: this.path,
                         };
                   }
                 }
@@ -336,18 +352,21 @@ export class Module {
               this.exports.default = {
                 identifierName: makeLegal(this.fileName),
                 localName: 'default',
+                source: this.path,
               };
             } else {
               this.exports.default = {
                 identifierName: declaration.name,
                 binding,
                 localName: 'default',
+                source: this.path,
               };
             }
           } else {
             this.exports.default = {
               identifierName: makeLegal(this.fileName),
               localName: 'default',
+              source: this.path,
             };
           }
         } else {
@@ -363,6 +382,7 @@ export class Module {
                 ? path.scope.getBinding(declaration.id.name)
                 : undefined,
               localName: 'default',
+              source: this.path,
             };
           }
         }
@@ -406,6 +426,7 @@ export class Module {
           this.importBindings.push({
             importedName: importedName,
             binding: binding,
+            source: join(this.directory, importPath),
           });
         });
 
@@ -417,6 +438,7 @@ export class Module {
                   dependency.exports['default'] = {
                     identifierName: specifier.local.name,
                     localName: 'default',
+                    source: dependency.path,
                   };
                 }
                 break;
@@ -425,6 +447,7 @@ export class Module {
                   dependency.exports['*'] = {
                     identifierName: specifier.local.name,
                     localName: '*',
+                    source: dependency.path,
                   };
                 }
                 break;
@@ -438,6 +461,7 @@ export class Module {
                     dependency.exports[importedName] = {
                       identifierName: specifier.local.name,
                       localName: specifier.local.name,
+                      source: dependency.path,
                     };
                   }
                 }
@@ -470,6 +494,7 @@ export class Module {
               externalDependency.exports[importedName] = {
                 identifierName: localName,
                 localName,
+                source: externalDependency.path,
               };
             }
 
@@ -486,6 +511,7 @@ export class Module {
           dependency.exports['*'] = {
             identifierName: namespaceSpecifiers[0].local.name,
             localName: '*',
+            source: dependency.path,
           };
 
           if (dependency.externalExportAlls.length > 0) {
@@ -498,6 +524,7 @@ export class Module {
                 externalDependency.exports['*'] = {
                   identifierName: makeLegal(externalDependency.path),
                   localName: '*',
+                  source: externalDependency.path,
                 };
               }
             });
