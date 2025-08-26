@@ -34,6 +34,10 @@ import {
 } from '@babel/types';
 
 export class Bundle {
+  static modules: Map<string, Module> = new Map();
+
+  static externalModules: Map<string, ExternalModule> = new Map();
+
   private entryPath: string;
 
   private outputPath: string | undefined;
@@ -61,7 +65,7 @@ export class Bundle {
 
     let needsMergeNamespaces = false;
 
-    traverseDependencyGraph(module, (module) => {
+    Bundle.modules.forEach((module) => {
       if (module.exports['*'] && module.externalExportAlls.length > 0) {
         needsMergeNamespaces = true;
       }
@@ -233,7 +237,7 @@ export class Bundle {
 
     const exports = new Set<{ identifierName: string }>();
 
-    Module.externalModules.forEach((externalModule) => {
+    Bundle.externalModules.forEach((externalModule) => {
       Object.values(externalModule.exports).forEach((exported) => {
         exports.add(exported);
       });
@@ -253,7 +257,7 @@ export class Bundle {
   private getExternalImports(): ImportDeclaration[] {
     const importDeclarations: ImportDeclaration[] = [];
 
-    Module.externalModules.forEach((externalModule) => {
+    Bundle.externalModules.forEach((externalModule) => {
       const exports = Object.entries(externalModule.exports);
       if (exports.length > 0) {
         const importSpecifiers: ImportSpecifier[] = [];
@@ -398,7 +402,7 @@ export class Bundle {
   }
 
   private performTreeshake(module: Module): void {
-    Module.externalModules.forEach((externalModule) => {
+    Bundle.externalModules.forEach((externalModule) => {
       Object.entries(externalModule.exports).forEach(([exportedName]) => {
         const isExportUsed = this.isExportUsed(externalModule, exportedName);
 
@@ -456,8 +460,8 @@ export class Bundle {
   }
 
   bundle(): string {
-    Module.externalModules.clear();
-    Module.modules.clear();
+    Bundle.externalModules.clear();
+    Bundle.modules.clear();
 
     const module = new Module(this.entryPath, true);
 

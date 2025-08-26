@@ -1,3 +1,4 @@
+import { Bundle } from './bundle.js';
 import { Module } from './module.js';
 
 export class ExternalModule {
@@ -15,7 +16,7 @@ export class ExternalModule {
   dependents: Set<Module> = new Set();
 
   constructor(path: string) {
-    Module.externalModules.set(path, this);
+    Bundle.externalModules.set(path, this);
     this.path = path;
   }
 }
