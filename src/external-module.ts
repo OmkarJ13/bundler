@@ -15,6 +15,7 @@ export class ExternalModule {
   dependents: Set<Module> = new Set();
 
   constructor(path: string) {
+    Module.externalModules.set(path, this);
     this.path = path;
   }
 }

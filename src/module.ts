@@ -57,9 +57,7 @@ export class Module {
   bindings: Set<Binding> = new Set();
 
   constructor(path: string, isEntryModule = false) {
-    if (isEntryModule) {
-      Module.modules.set(path, this);
-    }
+    Module.modules.set(path, this);
 
     this.path = path;
     this.isEntryModule = isEntryModule;
@@ -155,16 +153,14 @@ export class Module {
             join(this.directory, relativePath)
           )!;
           module.dependents.add(this);
+
+          this.checkCircularDependency(module);
+
           return module;
         }
 
         const dependencyModule = new Module(join(this.directory, relativePath));
         dependencyModule.dependents.add(this);
-
-        Module.modules.set(
-          join(this.directory, relativePath),
-          dependencyModule
-        );
 
         this.checkCircularDependency(dependencyModule);
 
@@ -184,7 +180,6 @@ export class Module {
       const externalModule = new ExternalModule(relativePath);
       externalModule.dependents.add(this);
 
-      Module.externalModules.set(relativePath, externalModule);
       return externalModule;
     }
   }
@@ -449,7 +444,10 @@ export class Module {
           this.importBindings.push({
             importedName: importedName,
             binding: binding,
-            source: join(this.directory, importPath),
+            source:
+              dependency instanceof ExternalModule
+                ? importPath
+                : join(this.directory, importPath),
           });
         });
 

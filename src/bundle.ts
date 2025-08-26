@@ -69,8 +69,13 @@ export class Bundle {
 
     const bundledAst = file(program([], [], 'module'));
 
+    const bundledModules: Module[] = [];
+
     traverseDependencyGraph(module, (module) => {
-      bundledAst.program.body.push(...module.ast.program.body);
+      if (!bundledModules.includes(module)) {
+        bundledAst.program.body.push(...module.ast.program.body);
+        bundledModules.push(module);
+      }
     });
 
     bundledAst.program.body.unshift(
@@ -182,7 +187,7 @@ export class Bundle {
         binding.identifier.name = identifierName;
 
         binding.referencePaths.forEach((path) => {
-          if (path.node.type === 'Identifier') {
+          if (path.node?.type === 'Identifier') {
             path.node.name = identifierName;
           }
         });
@@ -218,8 +223,12 @@ export class Bundle {
   }
 
   private deconflictIdentifiers(module: Module) {
+    const deconflictedModules: Module[] = [];
     traverseDependencyGraph(module, (module) => {
-      this.deconflictBindings(module);
+      if (!deconflictedModules.includes(module)) {
+        this.deconflictBindings(module);
+        deconflictedModules.push(module);
+      }
     });
 
     const exports = new Set<{ identifierName: string }>();
@@ -317,9 +326,9 @@ export class Bundle {
       const exports = Object.entries(dependent.exports);
       const importBinding = dependent.importBindings.find(
         (importBinding) =>
-          importBinding.importedName === name ||
-          (importBinding.importedName === '*' &&
-            importBinding.source === module.path)
+          (importBinding.importedName === name ||
+            importBinding.importedName === '*') &&
+          importBinding.source === module.path
       );
 
       if (
@@ -330,27 +339,32 @@ export class Bundle {
       }
 
       if (binding) {
-        const reexport = exports.find(
-          ([, { binding: exportedBinding }]) => exportedBinding === binding
-        );
+        let reexportedName: string | null = null;
 
-        if (reexport) {
-          const [name] = reexport;
-          if (this.isExportUsed(dependent, name, binding)) {
+        exports.forEach(([name, { binding: exportedBinding }]) => {
+          if (exportedBinding === binding) {
+            reexportedName = name;
+          }
+        });
+
+        if (reexportedName) {
+          if (this.isExportUsed(dependent, reexportedName, binding)) {
             return true;
           }
         }
       }
 
       if (module.exports['*']) {
-        const reexport = exports.find(
-          ([, { localName, source }]) =>
-            localName === '*' && source === module.path
-        );
+        let reexportedName: string | null = null;
 
-        if (reexport) {
-          const [name] = reexport;
-          if (this.isExportUsed(dependent, name, binding)) {
+        exports.forEach(([name, { localName, source }]) => {
+          if (localName === '*' && source === module.path) {
+            reexportedName = name;
+          }
+        });
+
+        if (reexportedName) {
+          if (this.isExportUsed(dependent, reexportedName, binding)) {
             return true;
           }
         }
@@ -364,14 +378,15 @@ export class Bundle {
         }
       }
 
-      const reexport = exports.find(
-        ([, { localName, source }]) =>
-          localName === name && source === module.path
-      );
+      let reexportedName: string | null = null;
+      exports.forEach(([exportedName, { localName, source }]) => {
+        if (localName === name && source === module.path) {
+          reexportedName = exportedName;
+        }
+      });
 
-      if (reexport) {
-        const [name] = reexport;
-        if (this.isExportUsed(dependent, name, binding)) {
+      if (reexportedName) {
+        if (this.isExportUsed(dependent, reexportedName, binding)) {
           return true;
         }
       }

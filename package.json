@@ -15,7 +15,6 @@
     "eslint:check": "eslint",
     "prepare": "husky"
   },
-  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OmkarJ13/bundler.git"
