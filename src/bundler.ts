@@ -60,7 +60,7 @@ export class Bundler {
     this.treeshake = treeshake;
   }
 
-  private getBundle(module: Module): string {
+  private getBundledCode(module: Module): string {
     const externalImportDeclarations = this.getExternalImports();
 
     let needsMergeNamespaces = false;
@@ -92,7 +92,7 @@ export class Bundler {
     return bundledCode;
   }
 
-  private transformAst(module: Module): void {
+  private performScopeHoisting(module: Module): void {
     traverseDependencyGraph(module, (module) => {
       traverse(module.ast, {
         ImportDeclaration: (path) => transformImports(path, module),
@@ -470,8 +470,8 @@ export class Bundler {
     }
 
     this.deconflictIdentifiers(module);
-    this.transformAst(module);
-    const bundledCode = this.getBundle(module);
+    this.performScopeHoisting(module);
+    const bundledCode = this.getBundledCode(module);
 
     if (this.outputPath) {
       fs.writeFileSync(this.outputPath, bundledCode);
