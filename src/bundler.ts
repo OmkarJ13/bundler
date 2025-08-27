@@ -33,6 +33,18 @@ import {
   stringLiteral,
 } from '@babel/types';
 
+export interface BundleResult {
+  code: string;
+  stats: {
+    inputSize: number;
+    outputSize: number;
+    duration: number;
+    modulesProcessed: number;
+    treeshakeEnabled: boolean;
+    minifyEnabled: boolean;
+  };
+}
+
 export class Bundler {
   static modules: Map<string, Module> = new Map();
 
@@ -459,7 +471,9 @@ export class Bundler {
     });
   }
 
-  bundle(): string {
+  bundle(): BundleResult {
+    const startTime = Date.now();
+
     Bundler.externalModules.clear();
     Bundler.modules.clear();
 
@@ -477,6 +491,28 @@ export class Bundler {
       fs.writeFileSync(this.outputPath, bundledCode);
     }
 
-    return bundledCode;
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    // Calculate input size (sum of all module files)
+    const inputSize = Array.from(Bundler.modules.values()).reduce(
+      (total, mod) => total + fs.statSync(mod.path).size,
+      0
+    );
+
+    const outputSize = Buffer.byteLength(bundledCode, 'utf8');
+    const modulesProcessed = Bundler.modules.size;
+
+    return {
+      code: bundledCode,
+      stats: {
+        inputSize,
+        outputSize,
+        duration,
+        modulesProcessed,
+        treeshakeEnabled: this.treeshake,
+        minifyEnabled: this.minify,
+      },
+    };
   }
 }

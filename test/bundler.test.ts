@@ -30,8 +30,8 @@ describe('bundler', async () => {
           }).toThrow(config.throwsError);
         } else {
           const bundle = new Bundler(entryPath);
-          const bundledCode = bundle.bundle();
-          await expect(bundledCode).toMatchFileSnapshot(
+          const { code } = bundle.bundle();
+          await expect(code).toMatchFileSnapshot(
             `fixtures/${name}/_expected.js`,
             fixturePath
           );
