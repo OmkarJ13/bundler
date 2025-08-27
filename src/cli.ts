@@ -3,6 +3,9 @@
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { Bundle } from './bundle.js';
+import { resolve } from 'path';
+import { existsSync } from 'fs';
+import type { Config } from './index.js';
 
 yargs()
   .scriptName('bundler')
@@ -13,35 +16,59 @@ yargs()
     (yargs) => {
       return yargs
         .option('entry', {
-          default: 'src/index.js',
           description: 'entry file',
+          type: 'string',
         })
         .option('output', {
-          default: 'dist/bundle.js',
           description: 'output bundle file',
+          type: 'string',
         })
         .option('minify', {
           default: false,
           description: 'minify the bundle',
+          defaultDescription: 'false',
         })
         .option('treeshake', {
           default: true,
           description: 'treeshake the bundle',
+          defaultDescription: 'true',
         })
         .option('config', {
-          default: 'bundler.config.js',
           description: 'config file',
+          type: 'string',
+          defaultDescription: 'bundler.config.js',
         });
     },
     async (argv) => {
-      const { default: config } = await import(argv.config);
+      let config: Partial<Config> = {};
 
-      const bundle = new Bundle(
-        config.entry ?? argv.entry,
-        config.output ?? argv.output,
-        config.minify ?? argv.minify,
-        config.treeshake ?? argv.treeshake
+      const configPath = resolve(
+        process.cwd(),
+        argv.config ?? 'bundler.config.js'
       );
+      if (existsSync(configPath)) {
+        const module = await import(configPath);
+        config = module.default;
+      } else {
+        if (argv.config) {
+          throw new Error(`Config file ${configPath} not found`);
+        }
+      }
+
+      const entry = config?.entry ?? argv.entry;
+      const output = config?.output ?? argv.output;
+      const minify = config?.minify ?? argv.minify;
+      const treeshake = config?.treeshake ?? argv.treeshake;
+
+      if (!entry) {
+        throw new Error('No entry file path provided');
+      }
+
+      if (!output) {
+        throw new Error('No output file path provided');
+      }
+
+      const bundle = new Bundle(entry, output, minify, treeshake);
 
       bundle.bundle();
     }
