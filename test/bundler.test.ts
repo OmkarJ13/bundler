@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { Bundle } from '../src/bundle';
+import { Bundler } from '../src/bundler';
 import path from 'path';
 import fs from 'fs';
 
@@ -25,11 +25,11 @@ describe('bundler', async () => {
         const entryPath = path.join(fixturePath, 'index.js');
         if (config.throwsError) {
           expect(() => {
-            const bundle = new Bundle(entryPath);
+            const bundle = new Bundler(entryPath);
             bundle.bundle();
           }).toThrow(config.throwsError);
         } else {
-          const bundle = new Bundle(entryPath);
+          const bundle = new Bundler(entryPath);
           const bundledCode = bundle.bundle();
           await expect(bundledCode).toMatchFileSnapshot(
             `fixtures/${name}/_expected.js`,

@@ -2,7 +2,7 @@
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { Bundle } from './bundle.js';
+import { Bundler } from './bundler.js';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
 import type { Config } from './index.js';
@@ -68,7 +68,7 @@ yargs()
         throw new Error('No output file path provided');
       }
 
-      const bundle = new Bundle(entry, output, minify, treeshake);
+      const bundle = new Bundler(entry, output, minify, treeshake);
 
       bundle.bundle();
     }

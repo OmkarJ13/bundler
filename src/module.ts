@@ -16,7 +16,7 @@ import {
   traverseDependencyGraph,
 } from './utils';
 import { ExternalModule } from './external-module';
-import { Bundle } from './bundle';
+import { Bundler } from './bundler';
 
 export class Module {
   path: string;
@@ -54,7 +54,7 @@ export class Module {
   bindings: Set<Binding> = new Set();
 
   constructor(path: string, isEntryModule = false) {
-    Bundle.modules.set(path, this);
+    Bundler.modules.set(path, this);
 
     this.path = path;
     this.isEntryModule = isEntryModule;
@@ -145,8 +145,8 @@ export class Module {
       }
 
       if (exists) {
-        if (Bundle.modules.has(join(this.directory, relativePath))) {
-          const module = Bundle.modules.get(
+        if (Bundler.modules.has(join(this.directory, relativePath))) {
+          const module = Bundler.modules.get(
             join(this.directory, relativePath)
           )!;
           module.dependents.add(this);
@@ -168,8 +168,8 @@ export class Module {
         );
       }
     } else {
-      if (Bundle.externalModules.has(relativePath)) {
-        const externalModule = Bundle.externalModules.get(relativePath)!;
+      if (Bundler.externalModules.has(relativePath)) {
+        const externalModule = Bundler.externalModules.get(relativePath)!;
         externalModule.dependents.add(this);
         return externalModule;
       }
