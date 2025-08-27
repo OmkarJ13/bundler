@@ -48,7 +48,7 @@ graph TD;
     A["Entry File"] --> B{"Parsing to AST"};
     B --> C{"Dependency Graph<br/>Construction"};
     C --> D{"Tree-Shaking"};
-    D --> E{"AST Transformation"};
+    D --> E{"Scope Hoisting"};
     E --> F{"Code Generation"};
     F --> G["Bundled Output"];
 ```
