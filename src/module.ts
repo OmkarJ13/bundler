@@ -516,6 +516,12 @@ export class Module {
               dependency.externalExportAlls[0].source.value
             ] as ExternalModule;
 
+            if (dependency.externalExportAlls.length > 1) {
+              Bundler.warnings.push(
+                `Ambigious external export resolution: ${dependency.path} re-exports ${importedName} from one of the external modules ${dependency.externalExportAlls.map((exported) => exported.source.value).join(' and ')}, guessing ${dependency.externalExportAlls[0].source.value}`
+              );
+            }
+
             if (!externalDependency.exports[importedName]) {
               externalDependency.exports[importedName] = {
                 identifierName: localName,

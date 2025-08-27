@@ -79,13 +79,11 @@ yargs()
           throw new Error('No output file path provided');
         }
 
-        // Resolve paths for display
         const entryPath = resolve(entry);
         const outputPath = resolve(output);
         const relativeEntry = relative(process.cwd(), entryPath);
         const relativeOutput = relative(process.cwd(), outputPath);
 
-        // Verify entry file exists
         if (!existsSync(entryPath)) {
           throw new Error(
             `Entry file ${chalk.yellow(relativeEntry)} not found`
@@ -99,7 +97,6 @@ yargs()
 
         spinner.succeed(chalk.green('Bundle created successfully!'));
 
-        // Calculate size reduction
         const sizeReduction =
           ((result.stats.inputSize - result.stats.outputSize) /
             result.stats.inputSize) *
@@ -109,7 +106,6 @@ yargs()
             ? chalk.green(`(-${sizeReduction.toFixed(1)}%)`)
             : chalk.red(`(+${Math.abs(sizeReduction).toFixed(1)}%)`);
 
-        // Create success message box
         const successMessage = [
           `${chalk.cyan('📁 Input:')}        ${chalk.white(relativeEntry)}`,
           `${chalk.cyan('📄 Output:')}       ${chalk.white(relativeOutput)}`,
@@ -134,8 +130,29 @@ yargs()
             titleAlignment: 'center',
           })
         );
+
+        if (result.warnings.length > 0) {
+          const formattedWarnings = result.warnings
+            .map((warning, index) => {
+              const warningNumber = chalk.dim(`[${index + 1}]`);
+              const warningIcon = chalk.yellow('🟨');
+              const warningText = chalk.white(warning);
+              return `${warningIcon} ${warningNumber} ${warningText}`;
+            })
+            .join('\n\n');
+
+          console.log(
+            boxen(formattedWarnings, {
+              padding: 1,
+              margin: 1,
+              borderStyle: 'single',
+              borderColor: 'yellow',
+              title: `🟨 ${result.warnings.length} Warning${result.warnings.length > 1 ? 's' : ''}`,
+              titleAlignment: 'center',
+            })
+          );
+        }
       } catch (error) {
-        // Enhanced error handling
         spinner.fail(chalk.red('Bundle creation failed'));
         const errorMessage =
           error instanceof Error ? error.message : String(error);

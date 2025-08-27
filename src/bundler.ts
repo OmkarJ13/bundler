@@ -35,6 +35,7 @@ import {
 
 export interface BundleResult {
   code: string;
+  warnings: string[];
   stats: {
     inputSize: number;
     outputSize: number;
@@ -49,6 +50,8 @@ export class Bundler {
   static modules: Map<string, Module> = new Map();
 
   static externalModules: Map<string, ExternalModule> = new Map();
+
+  static warnings: string[] = [];
 
   private entryPath: string;
 
@@ -476,6 +479,7 @@ export class Bundler {
 
     Bundler.externalModules.clear();
     Bundler.modules.clear();
+    Bundler.warnings = [];
 
     const module = new Module(this.entryPath, true);
 
@@ -505,6 +509,7 @@ export class Bundler {
 
     return {
       code: bundledCode,
+      warnings: Bundler.warnings,
       stats: {
         inputSize,
         outputSize,
