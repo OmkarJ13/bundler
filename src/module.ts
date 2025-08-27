@@ -53,8 +53,11 @@ export class Module {
 
   bindings: Set<Binding> = new Set();
 
-  constructor(path: string, isEntryModule = false) {
-    Bundler.modules.set(path, this);
+  bundler: Bundler;
+
+  constructor(path: string, isEntryModule = false, bundler: Bundler) {
+    this.bundler = bundler;
+    this.bundler.modules.set(path, this);
 
     this.path = path;
     this.isEntryModule = isEntryModule;
@@ -153,8 +156,8 @@ export class Module {
       }
 
       if (exists) {
-        if (Bundler.modules.has(join(this.directory, relativePath))) {
-          const module = Bundler.modules.get(
+        if (this.bundler.modules.has(join(this.directory, relativePath))) {
+          const module = this.bundler.modules.get(
             join(this.directory, relativePath)
           )!;
           module.dependents.add(this);
@@ -164,7 +167,11 @@ export class Module {
           return module;
         }
 
-        const dependencyModule = new Module(join(this.directory, relativePath));
+        const dependencyModule = new Module(
+          join(this.directory, relativePath),
+          false,
+          this.bundler
+        );
         dependencyModule.dependents.add(this);
 
         this.checkCircularDependency(dependencyModule);
@@ -176,13 +183,13 @@ export class Module {
         );
       }
     } else {
-      if (Bundler.externalModules.has(relativePath)) {
-        const externalModule = Bundler.externalModules.get(relativePath)!;
+      if (this.bundler.externalModules.has(relativePath)) {
+        const externalModule = this.bundler.externalModules.get(relativePath)!;
         externalModule.dependents.add(this);
         return externalModule;
       }
 
-      const externalModule = new ExternalModule(relativePath);
+      const externalModule = new ExternalModule(relativePath, this.bundler);
       externalModule.dependents.add(this);
 
       return externalModule;
@@ -517,7 +524,7 @@ export class Module {
             ] as ExternalModule;
 
             if (dependency.externalExportAlls.length > 1) {
-              Bundler.warnings.push(
+              this.bundler.warnings.push(
                 `Ambigious external export resolution: ${dependency.path} re-exports ${importedName} from one of the external modules ${dependency.externalExportAlls.map((exported) => exported.source.value).join(' and ')}, guessing ${dependency.externalExportAlls[0].source.value}`
               );
             }

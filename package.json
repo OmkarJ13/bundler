@@ -1,6 +1,6 @@
 {
   "name": "@omkarj13/bundler",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A minimal JavaScript bundler",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,7 +21,7 @@
     "url": "git+https://github.com/OmkarJ13/bundler.git"
   },
   "bin": {
-    "bundler": "./dist/cli.js"
+    "@omkarj13/bundler": "./dist/cli.js"
   },
   "keywords": [
     "bundler",

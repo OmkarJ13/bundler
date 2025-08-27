@@ -47,11 +47,11 @@ export interface BundleResult {
 }
 
 export class Bundler {
-  static modules: Map<string, Module> = new Map();
+  modules: Map<string, Module> = new Map();
 
-  static externalModules: Map<string, ExternalModule> = new Map();
+  externalModules: Map<string, ExternalModule> = new Map();
 
-  static warnings: string[] = [];
+  warnings: string[] = [];
 
   private entryPath: string;
 
@@ -69,7 +69,7 @@ export class Bundler {
 
     let needsMergeNamespaces = false;
 
-    Bundler.modules.forEach((module) => {
+    this.modules.forEach((module) => {
       if (module.exports['*'] && module.externalExportAlls.length > 0) {
         needsMergeNamespaces = true;
       }
@@ -241,7 +241,7 @@ export class Bundler {
 
     const exports = new Set<{ identifierName: string }>();
 
-    Bundler.externalModules.forEach((externalModule) => {
+    this.externalModules.forEach((externalModule) => {
       Object.values(externalModule.exports).forEach((exported) => {
         exports.add(exported);
       });
@@ -261,7 +261,7 @@ export class Bundler {
   private getExternalImports(): ImportDeclaration[] {
     const importDeclarations: ImportDeclaration[] = [];
 
-    Bundler.externalModules.forEach((externalModule) => {
+    this.externalModules.forEach((externalModule) => {
       const exports = Object.entries(externalModule.exports);
       if (exports.length > 0) {
         const importSpecifiers: ImportSpecifier[] = [];
@@ -406,7 +406,7 @@ export class Bundler {
   }
 
   private performTreeshake(module: Module): void {
-    Bundler.externalModules.forEach((externalModule) => {
+    this.externalModules.forEach((externalModule) => {
       Object.entries(externalModule.exports).forEach(([exportedName]) => {
         const isExportUsed = this.isExportUsed(externalModule, exportedName);
 
@@ -467,11 +467,11 @@ export class Bundler {
     const startTime = Date.now();
 
     this.identifierNames.clear();
-    Bundler.externalModules.clear();
-    Bundler.modules.clear();
-    Bundler.warnings = [];
+    this.externalModules.clear();
+    this.modules.clear();
+    this.warnings = [];
 
-    const module = new Module(this.entryPath, true);
+    const module = new Module(this.entryPath, true, this);
 
     if (treeshake) {
       this.performTreeshake(module);
@@ -489,17 +489,17 @@ export class Bundler {
     const duration = endTime - startTime;
 
     // Calculate input size (sum of all module files)
-    const inputSize = Array.from(Bundler.modules.values()).reduce(
+    const inputSize = Array.from(this.modules.values()).reduce(
       (total, mod) => total + fs.statSync(mod.path).size,
       0
     );
 
     const outputSize = Buffer.byteLength(bundledCode, 'utf8');
-    const modulesProcessed = Bundler.modules.size;
+    const modulesProcessed = this.modules.size;
 
     return {
       code: bundledCode,
-      warnings: Bundler.warnings,
+      warnings: this.warnings,
       stats: {
         inputSize,
         outputSize,

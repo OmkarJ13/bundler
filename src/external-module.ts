@@ -15,8 +15,11 @@ export class ExternalModule {
 
   dependents: Set<Module> = new Set();
 
-  constructor(path: string) {
-    Bundler.externalModules.set(path, this);
+  bundler: Bundler;
+
+  constructor(path: string, bundler: Bundler) {
+    this.bundler = bundler;
+    this.bundler.externalModules.set(path, this);
     this.path = path;
   }
 }
