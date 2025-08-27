@@ -26,7 +26,7 @@ npx @omkarj13/bundler bundle --entry ./src/index.js --output ./dist/bundle.js
 | `--entry`     | The entry point of your application.   | (required)          |
 | `--output`    | The path to write the bundled file to. | (required)          |
 | `--treeshake` | Enable or disable tree-shaking.        | `true`              |
-| `--minify`    | Minify the output bundle.              | `false`             |
+| `--minify`    | Minify the output bundle.              | `true`              |
 | `--config`    | Path to a configuration file.          | `bundler.config.js` |
 
 ### Configuration File
@@ -39,6 +39,7 @@ export default {
   entry: './src/index.js',
   output: './dist/bundle.js',
   minify: true,
+  treeshake: true,
 };
 ```
 

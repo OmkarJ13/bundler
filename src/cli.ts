@@ -28,11 +28,13 @@ yargs()
           type: 'string',
         })
         .option('minify', {
+          type: 'boolean',
           default: true,
           description: 'minify the bundle',
           defaultDescription: 'true',
         })
         .option('treeshake', {
+          type: 'boolean',
           default: true,
           description: 'treeshake the bundle',
           defaultDescription: 'true',
