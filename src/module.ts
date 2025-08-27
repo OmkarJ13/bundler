@@ -61,8 +61,16 @@ export class Module {
     this.directory = dirname(this.path);
     this.fileName = basename(this.path);
 
-    const contents = fs.readFileSync(this.path, 'utf-8');
-    this.ast = parse(contents, { sourceType: 'module' });
+    try {
+      const contents = fs.readFileSync(this.path, 'utf-8');
+      this.ast = parse(contents, { sourceType: 'module' });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to parse module at "${this.path}": ${errorMessage}`
+      );
+    }
 
     this.fixImportsWithoutExtension();
     this.analyseDependencies();
