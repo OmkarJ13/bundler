@@ -1,6 +1,6 @@
 {
   "name": "@omkarj13/bundler",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A minimal JavaScript bundler",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

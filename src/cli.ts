@@ -28,9 +28,9 @@ yargs()
           type: 'string',
         })
         .option('minify', {
-          default: false,
+          default: true,
           description: 'minify the bundle',
-          defaultDescription: 'false',
+          defaultDescription: 'true',
         })
         .option('treeshake', {
           default: true,
@@ -92,8 +92,8 @@ yargs()
 
         spinner.start();
 
-        const bundler = new Bundler(entry, output, minify, treeshake);
-        const result = bundler.bundle();
+        const bundler = new Bundler(entry, output);
+        const result = bundler.bundle(minify, treeshake);
 
         spinner.succeed(chalk.green('Bundle created successfully!'));
 

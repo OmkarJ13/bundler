@@ -57,25 +57,14 @@ export class Bundler {
 
   private outputPath: string | undefined;
 
-  private minify: boolean;
-
-  private treeshake: boolean;
-
   private identifierNames = new Set<string>();
 
-  constructor(
-    entryPath: string,
-    outputPath?: string,
-    minify: boolean = false,
-    treeshake: boolean = true
-  ) {
+  constructor(entryPath: string, outputPath?: string) {
     this.entryPath = entryPath;
     this.outputPath = outputPath;
-    this.minify = minify;
-    this.treeshake = treeshake;
   }
 
-  private getBundledCode(module: Module): string {
+  private getBundledCode(module: Module, minify: boolean): string {
     const externalImportDeclarations = this.getExternalImports();
 
     let needsMergeNamespaces = false;
@@ -102,7 +91,7 @@ export class Bundler {
       ...(needsMergeNamespaces ? [mergeNamespacesFunctionDefinition] : [])
     );
 
-    const bundledCode = generate(bundledAst, { minified: this.minify }).code;
+    const bundledCode = generate(bundledAst, { minified: minify }).code;
 
     return bundledCode;
   }
@@ -474,22 +463,23 @@ export class Bundler {
     });
   }
 
-  bundle(): BundleResult {
+  bundle(minify = true, treeshake = true): BundleResult {
     const startTime = Date.now();
 
+    this.identifierNames.clear();
     Bundler.externalModules.clear();
     Bundler.modules.clear();
     Bundler.warnings = [];
 
     const module = new Module(this.entryPath, true);
 
-    if (this.treeshake) {
+    if (treeshake) {
       this.performTreeshake(module);
     }
 
     this.deconflictIdentifiers(module);
     this.performScopeHoisting(module);
-    const bundledCode = this.getBundledCode(module);
+    const bundledCode = this.getBundledCode(module, minify);
 
     if (this.outputPath) {
       fs.writeFileSync(this.outputPath, bundledCode);
@@ -515,8 +505,8 @@ export class Bundler {
         outputSize,
         duration,
         modulesProcessed,
-        treeshakeEnabled: this.treeshake,
-        minifyEnabled: this.minify,
+        treeshakeEnabled: treeshake,
+        minifyEnabled: minify,
       },
     };
   }
