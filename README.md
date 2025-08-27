@@ -16,7 +16,7 @@ This is a minimalist JavaScript bundler created to explore the inner workings of
 You can use Bundler to bundle your JavaScript projects from the command line.
 
 ```bash
-npx bundler bundle --entry ./src/index.js --output ./dist/bundle.js
+npx @omkarj13/bundler bundle --entry ./src/index.js --output ./dist/bundle.js
 ```
 
 ### Options

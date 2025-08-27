@@ -1,5 +1,5 @@
 {
-  "name": "bundler",
+  "name": "@omkarj13/bundler",
   "version": "1.0.0",
   "description": "A minimal JavaScript bundler",
   "main": "./dist/index.js",
