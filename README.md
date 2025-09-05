@@ -1,14 +1,12 @@
 # Bundler
 
-This is a minimalist JavaScript bundler created to explore the inner workings of modern module bundlers like Rollup and webpack. It's a tool built for learning and experimentation, and not intended for production use.
+This is a minimal JavaScript bundler. It bundles, tree-shakes and minifies JavaScript modules out of the box.
 
 ## Features
 
-- **ES Module Support:** Works with `import` and `export` syntax.
-- **Tree-Shaking:** Automatically removes unused code to keep your bundles small.
-- **Scope Hoisting:** Combines modules into a single scope for faster, smaller code.
-- **Minification:** Reduces the final bundle size by removing unnecessary characters.
-- **Dependency Resolution:** Traverses your module graph to include all necessary code.
+- **Scope Hoisting:** Combines modules into a single scope to minimize runtime overhead.
+- **Tree-Shaking:** Automatically removes dead code to output the smallest bundle possible.
+- **Minification:** Compresses the final bundle even further by removing unnecessary characters.
 - **Minimalist Core:** A small, focused codebase that's easier to understand.
 
 ## Usage
@@ -49,7 +47,7 @@ This bundler processes JavaScript modules in the following sequence:
 
 1.  **Parsing & Dependency Graph Construction**: It starts from the entry file, parsing the code into an Abstract Syntax Tree (AST). It then traverses the `import` statements to discover all dependencies, building a complete graph of your project's modules.
 
-2.  **Tree Shaking**: The dependency graph is analyzed to identify and remove any exported code that is not actually used in the project, which helps to reduce the final bundle size.
+2.  **Tree Shaking**: The dependency graph is analyzed to identify and remove any code that is not actually used in the project, which helps to reduce the final bundle size.
 
 3.  **Deconflicting Identifiers**: To prevent naming collisions when all the modules are combined, the bundler intelligently renames variables as needed.
 
@@ -81,10 +79,9 @@ There are many opportunities to expand the capabilities of this project, and con
 - **Source Maps**: To make debugging bundled code easier.
 - **Code Splitting**: To split the bundle into smaller chunks that can be loaded on demand.
 - **Plugin System**: To allow for custom transformations and optimizations.
-- **Support for Other Module Formats**: Such as CommonJS.
 
 If you're interested in contributing, feel free to open an issue or submit a pull request.
 
 ---
 
-Built with curiosity by [OmkarJ13](https://github.com/OmkarJ13).
+Built with ❤️ by [OmkarJ13](https://github.com/OmkarJ13).
