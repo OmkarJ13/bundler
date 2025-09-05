@@ -1,6 +1,6 @@
 # Bundler
 
-This is a minimalist JavaScript bundler created to explore the inner workings of modern module bundlers like Rollup and webpack. It's a tool built for learning and experimentation, and not intended for production use.
+This is a minimalist JavaScript bundler created to explore the inner workings of modern module bundlers like Rollup and Webpack. It's a tool built with learning as the primary objective, and not intended for traditional production use. (It can be used for simple vanilla javascript apps though!)
 
 ## Features
 
